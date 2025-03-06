@@ -48,12 +48,29 @@ else
     exit 1
 fi
 
+# === PHP 8.3 als Standard setzen ===
+log "🛠 Setze PHP 8.3 als Standard..."
+update-alternatives --set php /usr/bin/php8.3
+update-alternatives --set phar /usr/bin/phar8.3
+update-alternatives --set phar.phar /usr/bin/phar.phar8.3
+update-alternatives --set phpize /usr/bin/phpize8.3
+update-alternatives --set php-config /usr/bin/php-config8.3
+
+# === Automatisch PHP 8.3 als Standard auswählen, falls mehrere Versionen existieren ===
+if update-alternatives --config php | grep -q "/usr/bin/php8.3"; then
+    log "✅ PHP 8.3 wurde erfolgreich als Standard gesetzt."
+else
+    log "⚠️ PHP 8.3 konnte nicht automatisch als Standard gesetzt werden!"
+fi
+
+
 # === Sicherstellen, dass die Zeitzone korrekt gesetzt ist ===
 log "🕒 Setze Zeitzone auf Europe/Berlin..."
 timedatectl set-timezone Europe/Berlin
 
 # === PHP 8.3 Optimierung ===
 log "🛠  Konfiguriere PHP 8.3 für Nextcloud..."
+sudo a2enmod php8.3 
 
 # Backup erstellen
 log "📂 Erstelle Backups aller relevanten PHP 8.3 Konfigurationsdateien..."
@@ -215,6 +232,7 @@ fi
 
 # === Webserver und PHP-FPM neu starten ===
 if [[ "$WEB_SERVER" == "apache" ]]; then
+    a2enmod php8.3
     log "♻️  Starte Apache mit PHP 8.3 neu..."
     systemctl restart php8.3-fpm.service apache2.service
 elif [[ "$WEB_SERVER" == "nginx" ]]; then
@@ -222,6 +240,32 @@ elif [[ "$WEB_SERVER" == "nginx" ]]; then
     systemctl restart php8.3-fpm.service nginx.service
 fi
 
+
+# === Überprüfen, ob Apache/PHP-FPM wirklich laufen ===
+log "🔍 Überprüfe, ob PHP-FPM und Webserver erfolgreich gestartet sind..."
+if ! systemctl is-active --quiet php8.3-fpm.service; then
+    log "❌ Fehler: PHP-FPM konnte nicht gestartet werden!"
+    echo "⚠️ PHP-FPM konnte nicht gestartet werden! Überprüfe die Logs:"
+    echo "🔹 journalctl -xe -u php8.3-fpm.service"
+    echo "🔹 cat /var/log/php8.3-fpm.log"
+    exit 1
+fi
+
+if [[ "$WEB_SERVER" == "apache" && ! systemctl is-active --quiet apache2.service ]]; then
+    log "❌ Fehler: Apache konnte nicht gestartet werden!"
+    echo "⚠️ Apache konnte nicht gestartet werden! Überprüfe die Logs:"
+    echo "🔹 journalctl -xe -u apache2.service"
+    echo "🔹 cat /var/log/apache2/error.log"
+    exit 1
+fi
+
+if [[ "$WEB_SERVER" == "nginx" && ! systemctl is-active --quiet nginx.service ]]; then
+    log "❌ Fehler: Nginx konnte nicht gestartet werden!"
+    echo "⚠️ Nginx konnte nicht gestartet werden! Überprüfe die Logs:"
+    echo "🔹 journalctl -xe -u nginx.service"
+    echo "🔹 cat /var/log/nginx/error.log"
+    exit 1
+fi
 
 log "✅ PHP 8.3 Installation & Konfiguration abgeschlossen!"
 echo "✅ PHP 8.3 wurde erfolgreich installiert und konfiguriert!"
