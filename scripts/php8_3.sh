@@ -68,11 +68,6 @@ cp /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.bak
 
 # Anpassungen
 log "📌 Passen PHP-FPM Parameter an..."
-sed -i "s/;env\[HOSTNAME\] = /env[HOSTNAME] = /" /etc/php/8.3/fpm/pool.d/www.conf
-sed -i "s/;env\[TMP\] = /env[TMP] = /" /etc/php/8.3/fpm/pool.d/www.conf
-sed -i "s/;env\[TMPDIR\] = /env[TMPDIR] = /" /etc/php/8.3/fpm/pool.d/www.conf
-sed -i "s/;env\[TEMP\] = /env[TEMP] = /" /etc/php/8.3/fpm/pool.d/www.conf
-sed -i "s/;env\[PATH\] = /env[PATH] = /" /etc/php/8.3/fpm/pool.d/www.conf
 sed -i 's/pm = dynamic/pm = ondemand/' /etc/php/8.3/fpm/pool.d/www.conf
 sed -i 's/pm.max_children =.*/pm.max_children = 200/' /etc/php/8.3/fpm/pool.d/www.conf
 sed -i 's/pm.start_servers =.*/pm.start_servers = 100/' /etc/php/8.3/fpm/pool.d/www.conf
@@ -94,7 +89,6 @@ sed -i "s/max_input_time =.*/max_input_time = 3600/" /etc/php/8.3/fpm/php.ini
 sed -i "s/post_max_size =.*/post_max_size = 10G/" /etc/php/8.3/fpm/php.ini
 sed -i "s/upload_max_filesize =.*/upload_max_filesize = 10G/" /etc/php/8.3/fpm/php.ini
 sed -i "s/;date.timezone.*/date.timezone = Europe\/\Berlin/" /etc/php/8.3/fpm/php.ini
-sed -i "s/;cgi.fix_pathinfo.*/cgi.fix_pathinfo=0/" /etc/php/8.3/fpm/php.ini
 sed -i "s/;session.cookie_secure.*/session.cookie_secure = True/" /etc/php/8.3/fpm/php.ini
 sed -i "s/;opcache.enable=.*/opcache.enable=1/" /etc/php/8.3/fpm/php.ini
 sed -i "s/;opcache.validate_timestamps=.*/opcache.validate_timestamps=1/" /etc/php/8.3/fpm/php.ini
