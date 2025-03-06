@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# === KONFIGURATION ===
 REPO_URL="https://github.com/tenbyte/ncm"
 RAW_URL="https://raw.githubusercontent.com/tenbyte/ncm/main"
 SCRIPTS_DIR="./scripts"
@@ -11,17 +10,13 @@ for script in "$SCRIPTS_DIR"/*.sh; do
 done
 
 
-# === FUNKTION: ALLE SCRIPTE AKTUALISIEREN ===
 update_all() {
     echo "🔄 Aktualisiere alle Skripte von GitHub..."
 
-    # Update main.sh
     curl -s -o main.sh "${RAW_URL}/main.sh" && chmod +x main.sh
 
-    # Prüfe, ob das Verzeichnis existiert, wenn nicht, erstelle es
     [ ! -d "$SCRIPTS_DIR" ] && mkdir -p "$SCRIPTS_DIR"
 
-    # Lade alle Skripte aus dem `scripts`-Verzeichnis von GitHub
     ONLINE_SCRIPTS=$(curl -s "https://api.github.com/repos/tenbyte/ncm/contents/scripts" | grep '"name"' | awk -F '"' '{print $4}')
 
     if [ -z "$ONLINE_SCRIPTS" ]; then
@@ -29,7 +24,6 @@ update_all() {
         return
     fi
 
-    # Lade jedes Skript herunter
     for script in $ONLINE_SCRIPTS; do
         echo "⬇️  Lade $script herunter..."
         curl -s -o "$SCRIPTS_DIR/$script" "$RAW_URL/scripts/$script"
@@ -40,7 +34,6 @@ update_all() {
     exit 0
 }
 
-# === FUNKTION: UPDATE CHECKER MIT FORCE-OPTION ===
 check_update() {
     echo "🔄 Prüfe auf Updates für das Hauptskript..."
     LATEST_VERSION=$(curl -s "${RAW_URL}/version.txt" | tr -d '\r')
@@ -61,7 +54,6 @@ check_update() {
         echo "✅ Du nutzt die neueste Version ($CURRENT_VERSION)."
     fi
 
-    # Force Update nach dem Check anbieten
     echo "⚠️ Möchtest du trotzdem ein **Force Update** ausführen? (y/n)"
     read -r force_choice
     if [ "$force_choice" == "y" ]; then
@@ -70,7 +62,6 @@ check_update() {
 }
 
 
-# === FUNKTION: LOKALE SCRIPTE LISTEN & AUSFÜHREN ===
 run_local_script() {
     scripts=($(ls "$SCRIPTS_DIR"/*.sh 2>/dev/null))
     
@@ -97,11 +88,9 @@ run_local_script() {
     fi
 }
 
-# === FUNKTION: LOKALE VS. ONLINE-SKRIPTE PRÜFEN ===
 list_online_scripts() {
     echo "🌍 Prüfe Online-Skripte & lokale Versionen..."
     
-    # Lade die neueste version.txt von GitHub
     VERSION_DATA=$(curl -s "$RAW_URL/scripts/version.txt")
 
     if [ -z "$VERSION_DATA" ]; then
@@ -112,19 +101,16 @@ list_online_scripts() {
     echo -e "📂 Vergleich lokale vs. Online-Skripte:"
     echo "--------------------------------------"
 
-    # Gehe jede Zeile in version.txt durch
     echo "$VERSION_DATA" | while IFS="=" read -r script version_online; do
         local_script="$SCRIPTS_DIR/$script"
 
         if [ -f "$local_script" ]; then
-            # Lokale Version aus dem Skript lesen
             version_local=$(grep -E "^# Version: " "$local_script" | awk '{print $3}')
 
             if [ -z "$version_local" ]; then
                 version_local="Unbekannt"
             fi
 
-            # Vergleich zwischen Versionen
             if [ "$version_local" == "$version_online" ]; then
                 echo -e "✅ \e[32m$script (Version: $version_local) ist aktuell\e[0m"
             else
@@ -137,7 +123,6 @@ list_online_scripts() {
 }
 
 
-# === FUNKTION: MENÜ ===
 show_menu() {
     clear
     echo "==============================="
@@ -159,7 +144,7 @@ show_menu() {
     esac
 }
 
-# === START: MENÜ-SCHLEIFE ===
+
 while true; do
     show_menu
     read -p "Drücke Enter zum Fortfahren..." 
