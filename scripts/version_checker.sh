@@ -1,4 +1,5 @@
 #!/bin/bash
+# Version: 0.1.0
 
 echo "🔍 NCM - Version Checker"
 echo "========================================="
