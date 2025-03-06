@@ -11,7 +11,36 @@ for script in "$SCRIPTS_DIR"/*.sh; do
 done
 
 
-# === FUNKTION: UPDATE CHECKER ===
+# === FUNKTION: ALLE SCRIPTE AKTUALISIEREN ===
+update_all() {
+    echo "🔄 Aktualisiere alle Skripte von GitHub..."
+
+    # Update main.sh
+    curl -s -o main.sh "${RAW_URL}/main.sh" && chmod +x main.sh
+
+    # Prüfe, ob das Verzeichnis existiert, wenn nicht, erstelle es
+    [ ! -d "$SCRIPTS_DIR" ] && mkdir -p "$SCRIPTS_DIR"
+
+    # Lade alle Skripte aus dem `scripts`-Verzeichnis von GitHub
+    ONLINE_SCRIPTS=$(curl -s "https://api.github.com/repos/tenbyte/ncm/contents/scripts" | grep '"name"' | awk -F '"' '{print $4}')
+
+    if [ -z "$ONLINE_SCRIPTS" ]; then
+        echo "⚠️ Konnte keine Online-Skripte abrufen!"
+        return
+    fi
+
+    # Lade jedes Skript herunter
+    for script in $ONLINE_SCRIPTS; do
+        echo "⬇️  Lade $script herunter..."
+        curl -s -o "$SCRIPTS_DIR/$script" "$RAW_URL/scripts/$script"
+        chmod +x "$SCRIPTS_DIR/$script"
+    done
+
+    echo "✅ Update abgeschlossen! Bitte starte das Skript neu."
+    exit 0
+}
+
+# === FUNKTION: UPDATE CHECKER MIT FORCE-OPTION ===
 check_update() {
     echo "🔄 Prüfe auf Updates für das Hauptskript..."
     LATEST_VERSION=$(curl -s "${RAW_URL}/version.txt" | tr -d '\r')
@@ -23,21 +52,23 @@ check_update() {
 
     if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
         echo "🚀 Update verfügbar: $LATEST_VERSION (aktuell: $CURRENT_VERSION)"
-        echo "Möchtest du das Update jetzt ausführen? (y/n)"
+        echo "Möchtest du das **ganze Skript-Paket** aktualisieren? (y/n)"
         read -r choice
         if [ "$choice" == "y" ]; then
-            echo "🔄 Lade Update herunter..."
-            curl -s -o main.sh "${RAW_URL}/main.sh"
-            chmod +x main.sh
-            echo "✅ Update abgeschlossen! Bitte starte das Skript neu."
-            exit 0
-        else
-            echo "⚠️ Update abgelehnt. Du nutzt Version $CURRENT_VERSION."
+            update_all
         fi
     else
         echo "✅ Du nutzt die neueste Version ($CURRENT_VERSION)."
     fi
+
+    # Force Update nach dem Check anbieten
+    echo "⚠️ Möchtest du trotzdem ein **Force Update** ausführen? (y/n)"
+    read -r force_choice
+    if [ "$force_choice" == "y" ]; then
+        update_all
+    fi
 }
+
 
 # === FUNKTION: LOKALE SCRIPTE LISTEN & AUSFÜHREN ===
 run_local_script() {
@@ -66,17 +97,45 @@ run_local_script() {
     fi
 }
 
-
-# === FUNKTION: ONLINE-SKRIPTE ABRUFEN ===
+# === FUNKTION: LOKALE VS. ONLINE-SKRIPTE PRÜFEN ===
 list_online_scripts() {
-    echo "🌍 Verfügbare Online-Skripte:"
-    ONLINE_SCRIPTS=$(curl -s "https://api.github.com/repos/tenbyte/ncm/contents/scripts" | grep '"name"' | awk -F '"' '{print "  - " $4}')
-    if [ -z "$ONLINE_SCRIPTS" ]; then
-        echo "⚠️ Konnte keine Online-Skripte abrufen!"
-    else
-        echo "$ONLINE_SCRIPTS"
+    echo "🌍 Prüfe Online-Skripte & lokale Versionen..."
+    
+    # Lade die neueste version.txt von GitHub
+    VERSION_DATA=$(curl -s "$RAW_URL/scripts/version.txt")
+
+    if [ -z "$VERSION_DATA" ]; then
+        echo "⚠️ Konnte die Online-Versionsdatei nicht abrufen!"
+        return
     fi
+
+    echo -e "📂 Vergleich lokale vs. Online-Skripte:"
+    echo "--------------------------------------"
+
+    # Gehe jede Zeile in version.txt durch
+    echo "$VERSION_DATA" | while IFS="=" read -r script version_online; do
+        local_script="$SCRIPTS_DIR/$script"
+
+        if [ -f "$local_script" ]; then
+            # Lokale Version aus dem Skript lesen
+            version_local=$(grep -E "^# Version: " "$local_script" | awk '{print $3}')
+
+            if [ -z "$version_local" ]; then
+                version_local="Unbekannt"
+            fi
+
+            # Vergleich zwischen Versionen
+            if [ "$version_local" == "$version_online" ]; then
+                echo -e "✅ \e[32m$script (Version: $version_local) ist aktuell\e[0m"
+            else
+                echo -e "🔄 \e[33m$script (Lokal: $version_local, Online: $version_online) - Update verfügbar!\e[0m"
+            fi
+        else
+            echo -e "❌ \e[31m$script fehlt lokal! (Online: $version_online)\e[0m"
+        fi
+    done
 }
+
 
 # === FUNKTION: MENÜ ===
 show_menu() {
@@ -84,9 +143,9 @@ show_menu() {
     echo "==============================="
     echo " NCM by Tenbyte v$CURRENT_VERSION"
     echo "==============================="
-    echo "1) Update prüfen"
-    echo "2) Lokale Skripte anzeigen"
-    echo "3) Online verfügbare Skripte anzeigen"
+    echo "1) Update prüfen & alle Skripte aktualisieren"
+    echo "2) Lokale Skripte anzeigen & ausführen"
+    echo "3) Online verfügbare Skripte prüfen"
     echo "4) Beenden"
     echo "==============================="
     read -p "Wähle eine Option: " choice
