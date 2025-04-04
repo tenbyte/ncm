@@ -98,11 +98,7 @@ read -p "About to upgrade cluster from $current_version to $target_version."
 pg_upgradecluster $current_version main
 
 echo "🔄 Dropping old cluster..."
-read -p "About to drop old cluster $current_version. Continue? (y/n): " drop_old_confirm
-if [ "$drop_old_confirm" != "y" ]; then
-    echo "❌ Old cluster removal aborted!"
-    exit 1
-fi
+read -p "About to drop old cluster $current_version."
 pg_dropcluster $current_version main --stop
 
 echo "🔄 Restarting PostgreSQL Service..."
