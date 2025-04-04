@@ -4,8 +4,6 @@ REPO_URL="https://github.com/tenbyte/ncm"
 RAW_URL="https://raw.githubusercontent.com/tenbyte/ncm/main"
 SCRIPTS_DIR="./scripts"
 CURRENT_VERSION="0.1.4"
-
-# Colors and styles
 CYAN="\033[36m"
 WHITE="\033[37m"
 YELLOW="\033[33m"
@@ -124,6 +122,18 @@ toggle_maintenance() {
     bash "$SCRIPTS_DIR/maintenance.sh" "$mode"
 }
 
+clear_nextcloud_logs() {
+    echo "🗑️  Lösche Nextcloud Logs..."
+    if [ -d "/var/www/nextcloud/data" ]; then
+        rm -f /var/www/nextcloud/data/nextcloud.log
+        echo "✅ Nextcloud Logs wurden gelöscht"
+    else
+        echo "❌ Nextcloud Verzeichnis nicht gefunden!"
+    fi
+    echo -e "\n${YELLOW}Drücke Enter um zum Hauptmenü zurückzukehren...${RESET}"
+    read
+}
+
 show_menu() {
     clear
     echo -e "${CYAN}  __ ${RESET}${WHITE}    _             _           _       "
@@ -134,24 +144,23 @@ show_menu() {
     echo -e "                            |___/         ${RESET}"
     echo -e ""
     echo -e "${BOLD}${CYAN}       POWERED BY TENBYTE ${RESET}\n"
-    
     echo -e "${BG_BLUE}${WHITE}${BOLD} SYSTEM INFORMATION ${RESET}"
     echo -e "${CYAN}╭─────────────────────────────────╮${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}Hostname:${RESET} ${GREEN}$HOSTNAME${RESET}        ${CYAN}│${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}Version:${RESET}  ${YELLOW}v$CURRENT_VERSION${RESET}              ${CYAN}│${RESET}"
     echo -e "${CYAN}╰─────────────────────────────────╯${RESET}"
     echo ""
-    
     echo -e "${BG_BLUE}${WHITE}${BOLD} MAIN MENU ${RESET}"
     echo -e "${CYAN}╭─────────────────────────────────╮${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}1)${RESET} ${WHITE}Check for Updates${RESET}             ${CYAN}│${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}2)${RESET} ${WHITE}Scripts Manager${RESET}              ${CYAN}│${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}3)${RESET} ${GREEN}Enable Maintenance Mode${RESET}      ${CYAN}│${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}4)${RESET} ${RED}Disable Maintenance Mode${RESET}     ${CYAN}│${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}5)${RESET} ${YELLOW}Exit${RESET}                        ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}5)${RESET} ${MAGENTA}Nextcloud Logs löschen${RESET}      ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}6)${RESET} ${YELLOW}Exit${RESET}                        ${CYAN}│${RESET}"
     echo -e "${CYAN}╰─────────────────────────────────╯${RESET}"
     
-    echo -e "\n${DIM}Enter your choice [1-5]:${RESET} "
+    echo -e "\n${DIM}Enter your choice [1-6]:${RESET} "
     read -p "" choice
 
     case $choice in
@@ -159,7 +168,8 @@ show_menu() {
         2) run_scripts ;;
         3) toggle_maintenance "on" ;;
         4) toggle_maintenance "off" ;;
-        5) 
+        5) clear_nextcloud_logs ;;
+        6) 
            echo -e "\n${YELLOW}Goodbye!${RESET}"
            exit 0 
            ;;
