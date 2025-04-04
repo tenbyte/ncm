@@ -172,21 +172,26 @@ if ! systemctl is-active --quiet php8.3-fpm.service; then
     exit 1
 fi
 
-if [[ "$WEB_SERVER" == "apache" && ! systemctl is-active --quiet apache2.service ]]; then
-    log "❌ Fehler: Apache konnte nicht gestartet werden!"
-    echo "⚠️ Apache konnte nicht gestartet werden! Überprüfe die Logs:"
-    echo "🔹 journalctl -xe -u apache2.service"
-    echo "🔹 cat /var/log/apache2/error.log"
-    exit 1
+if [[ "$WEB_SERVER" == "apache" ]]; then
+    if ! systemctl is-active --quiet apache2.service; then
+        log "❌ Fehler: Apache konnte nicht gestartet werden!"
+        echo "⚠️ Apache konnte nicht gestartet werden! Überprüfe die Logs:"
+        echo "🔹 journalctl -xe -u apache2.service"
+        echo "🔹 cat /var/log/apache2/error.log"
+        exit 1
+    fi
 fi
 
-if [[ "$WEB_SERVER" == "nginx" && ! systemctl is-active --quiet nginx.service ]]; then
-    log "❌ Fehler: Nginx konnte nicht gestartet werden!"
-    echo "⚠️ Nginx konnte nicht gestartet werden! Überprüfe die Logs:"
-    echo "🔹 journalctl -xe -u nginx.service"
-    echo "🔹 cat /var/log/nginx/error.log"
-    exit 1
+if [[ "$WEB_SERVER" == "nginx" ]]; then
+    if ! systemctl is-active --quiet nginx.service; then
+        log "❌ Fehler: Nginx konnte nicht gestartet werden!"
+        echo "⚠️ Nginx konnte nicht gestartet werden! Überprüfe die Logs:"
+        echo "🔹 journalctl -xe -u nginx.service"
+        echo "🔹 cat /var/log/nginx/error.log"
+        exit 1
+    fi
 fi
+
 
 log "✅ PHP 8.3 Installation abgeschlossen!"
 echo "✅ PHP 8.3 wurde erfolgreich installiert"
