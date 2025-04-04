@@ -1,71 +1,72 @@
 #!/bin/bash
-# Version: 0.1.0
+
+# Version: 0.1.1
 
 LOG_FILE="/var/log/php8.3_install.log"
 
-echo "🔄 PHP 8.3 Installations- und Konfigurationsskript für Nextcloud"
+echo "🔄 PHP 8.3 Installation and Configuration Script for Nextcloud"
 echo "================================================================="
-echo "ℹ️  Dieses Skript installiert PHP 8.3"
+echo "ℹ️  This script will install PHP 8.3"
 
-# === Sicherstellen, dass Root-Rechte vorhanden sind ===
+# === Ensure root privileges ===
 if [[ $EUID -ne 0 ]]; then
-   echo "❌ Dieses Skript muss als Root ausgeführt werden!" 
+   echo "❌ This script must be run as root!" 
    exit 1
 fi
 
-# === Logging Funktion ===
+# === Logging function ===
 log() {
     echo "$1"
     echo "$(date +'%Y-%m-%d %H:%M:%S') $1" >> "$LOG_FILE"
 }
 
-# === System aktualisieren ===
-log "🔄 Systemupdate wird durchgeführt..."
+# === Update system ===
+log "🔄 Performing system update..."
 apt update && apt -y upgrade && apt -y autoremove
 
-# === PHP Repository hinzufügen ===
-log "🔄 PHP Repository von Ondrej wird hinzugefügt..."
+# === Add PHP repository ===
+log "🔄 Adding PHP repository from Ondrej..."
 apt install -y lsb-release gnupg2 ca-certificates apt-transport-https software-properties-common
 add-apt-repository ppa:ondrej/php -y
 apt update
 
 
-# === MariaDB oder PostgreSQL wählen ===
-echo "Welche Datenbank nutzt dein Nextcloud-Setup?"
+# === Choose MariaDB or PostgreSQL ===
+echo "Which database does your Nextcloud setup use?"
 echo "1) MariaDB/MySQL"
 echo "2) PostgreSQL"
 read -r DB_CHOICE
 
-# === PHP 8.3 installieren (je nach DB-Variante) ===
+# === Install PHP 8.3 (depending on DB variant) ===
 if [[ "$DB_CHOICE" == "1" ]]; then
-    log "📦 Installiere PHP 8.3 für MariaDB/MySQL..."
+    log "📦 Installing PHP 8.3 for MariaDB/MySQL..."
     apt install -y php-common php8.3-{fpm,gd,curl,xml,zip,intl,mbstring,bz2,ldap,apcu,bcmath,gmp,imagick,igbinary,mysql,redis,smbclient,sqlite3,cli,common,opcache,readline} imagemagick libmagickcore-6.q16-6-extra --allow-change-held-packages
 elif [[ "$DB_CHOICE" == "2" ]]; then
-    log "📦 Installiere PHP 8.3 für PostgreSQL..."
+    log "📦 Installing PHP 8.3 for PostgreSQL..."
     apt install -y php-common php8.3-{fpm,gd,curl,xml,zip,intl,mbstring,bz2,ldap,apcu,bcmath,gmp,imagick,igbinary,pgsql,redis,smbclient,sqlite3,cli,common,opcache,readline} imagemagick libmagickcore-6.q16-6-extra --allow-change-held-packages
 else
-    log "❌ Ungültige Eingabe! Breche ab."
+    log "❌ Invalid input! Aborting."
     exit 1
 fi
 
-# === Automatisch PHP 8.3 als Standard auswählen, falls mehrere Versionen existieren ===
+# === Automatically select PHP 8.3 as default if multiple versions exist ===
 if update-alternatives --config php | grep -q "/usr/bin/php8.3"; then
-    log "✅ PHP 8.3 wurde erfolgreich als Standard gesetzt."
+    log "✅ PHP 8.3 has been successfully set as default."
 else
-    log "⚠️ PHP 8.3 konnte nicht automatisch als Standard gesetzt werden!"
+    log "⚠️ PHP 8.3 could not be set as default automatically!"
 fi
 
 
-# === Sicherstellen, dass die Zeitzone korrekt gesetzt ist ===
-log "🕒 Setze Zeitzone auf Europe/Berlin..."
+# === Ensure timezone is set correctly ===
+log "🕒 Setting timezone to Europe/Berlin..."
 timedatectl set-timezone Europe/Berlin
 
-# === PHP 8.3 Optimierung ===
-log "🛠  Konfiguriere PHP 8.3 für Nextcloud..."
+# === PHP 8.3 optimization ===
+log "🛠  Configuring PHP 8.3 for Nextcloud..."
 sudo a2enmod php8.3 
 
-# Backup erstellen
-log "📂 Erstelle Backups aller relevanten PHP 8.3 Konfigurationsdateien..."
+# Create backups
+log "📂 Creating backups of all relevant PHP 8.3 configuration files..."
 cp /etc/php/8.3/fpm/pool.d/www.conf /etc/php/8.3/fpm/pool.d/www.conf.bak
 cp /etc/php/8.3/fpm/php-fpm.conf /etc/php/8.3/fpm/php-fpm.conf.bak
 cp /etc/php/8.3/cli/php.ini /etc/php/8.3/cli/php.ini.bak
@@ -75,8 +76,8 @@ cp /etc/php/8.3/mods-available/opcache.ini /etc/php/8.3/mods-available/opcache.i
 cp /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.bak
 
 
-# Anpassungen
-log "📌 Passen PHP-FPM Parameter an..."
+# Adjustments
+log "📌 Adjusting PHP-FPM parameters..."
 sed -i 's/pm = dynamic/pm = ondemand/' /etc/php/8.3/fpm/pool.d/www.conf
 sed -i 's/pm.max_children =.*/pm.max_children = 200/' /etc/php/8.3/fpm/pool.d/www.conf
 sed -i 's/pm.start_servers =.*/pm.start_servers = 100/' /etc/php/8.3/fpm/pool.d/www.conf
@@ -121,9 +122,9 @@ sed -i "s/rights=\"none\" pattern=\"PDF\"/rights=\"read|write\" pattern=\"PDF\"/
 sed -i "s/rights=\"none\" pattern=\"XPS\"/rights=\"read|write\" pattern=\"XPS\"/" /etc/ImageMagick-6/policy.xml
 
 
-# === MariaDB / MySQL Konfiguration anpassen ===
+# === MariaDB / MySQL configuration adjustment ===
 if [[ "$DB_CHOICE" == "1" ]]; then
-    log "🔧 Passe MySQL/MariaDB PHP 8.3 Konfiguration an..."
+    log "🔧 Adjusting MySQL/MariaDB PHP 8.3 configuration..."
 
     if [ -f "/etc/php/8.3/mods-available/mysqli.ini" ]; then
         cp /etc/php/8.3/mods-available/mysqli.ini /etc/php/8.3/mods-available/mysqli.ini.bak
@@ -131,30 +132,30 @@ if [[ "$DB_CHOICE" == "1" ]]; then
         grep -qxF "mysql.allow_local_infile=On" /etc/php/8.3/mods-available/mysqli.ini || echo "mysql.allow_local_infile=On" >> /etc/php/8.3/mods-available/mysqli.ini
         grep -qxF "mysql.allow_persistent=On" /etc/php/8.3/mods-available/mysqli.ini || echo "mysql.allow_persistent=On" >> /etc/php/8.3/mods-available/mysqli.ini
         grep -qxF "mysql.cache_size=2000" /etc/php/8.3/mods-available/mysqli.ini || echo "mysql.cache_size=2000" >> /etc/php/8.3/mods-available/mysqli.ini
-        log "✅ MySQL/MariaDB Konfiguration angepasst!"
+        log "✅ MySQL/MariaDB configuration adjusted!"
     else
-        log "⚠️  mysqli.ini nicht gefunden! Überspringe MariaDB-Konfiguration."
+        log "⚠️  mysqli.ini not found! Skipping MariaDB configuration."
     fi
 fi
 
-# === PostgreSQL Konfiguration anpassen ===
+# === PostgreSQL configuration adjustment ===
 if [[ "$DB_CHOICE" == "2" ]]; then
-    log "🔧 Passe PostgreSQL PHP 8.3 Konfiguration an..."
+    log "🔧 Adjusting PostgreSQL PHP 8.3 configuration..."
 
     if [ -f "/etc/php/8.3/mods-available/pgsql.ini" ]; then
         cp /etc/php/8.3/mods-available/pgsql.ini /etc/php/8.3/mods-available/pgsql.ini.bak
         grep -qxF "[PostgreSQL]" /etc/php/8.3/mods-available/pgsql.ini || echo "[PostgreSQL]" >> /etc/php/8.3/mods-available/pgsql.ini
         grep -qxF "pgsql.allow_persistent = On" /etc/php/8.3/mods-available/pgsql.ini || echo "pgsql.allow_persistent = On" >> /etc/php/8.3/mods-available/pgsql.ini
         grep -qxF "pgsql.auto_reset_persistent = Off" /etc/php/8.3/mods-available/pgsql.ini || echo "pgsql.auto_reset_persistent = Off" >> /etc/php/8.3/mods-available/pgsql.ini
-        log "✅ PostgreSQL Konfiguration angepasst!"
+        log "✅ PostgreSQL configuration adjusted!"
     else
-        log "⚠️  pgsql.ini nicht gefunden! Überspringe PostgreSQL-Konfiguration."
+        log "⚠️  pgsql.ini not found! Skipping PostgreSQL configuration."
     fi
 fi
 
 
-# === PHP 8.3 als Standard setzen ===
-log "🛠 Setze PHP 8.3 als Standard..."
+# === Set PHP 8.3 as default ===
+log "🛠 Setting PHP 8.3 as default..."
 update-alternatives --set php /usr/bin/php8.3
 update-alternatives --set phar /usr/bin/phar8.3
 update-alternatives --set phar.phar /usr/bin/phar.phar8.3
@@ -162,11 +163,11 @@ update-alternatives --set phpize /usr/bin/phpize8.3
 update-alternatives --set php-config /usr/bin/php-config8.3
 
 
-# === Überprüfen, ob Apache/PHP-FPM wirklich laufen ===
-log "🔍 Überprüfe, ob PHP-FPM und Webserver erfolgreich gestartet sind..."
+# === Check if Apache/PHP-FPM are really running ===
+log "🔍 Checking if PHP-FPM and webserver are running successfully..."
 if ! systemctl is-active --quiet php8.3-fpm.service; then
-    log "❌ Fehler: PHP-FPM konnte nicht gestartet werden!"
-    echo "⚠️ PHP-FPM konnte nicht gestartet werden! Überprüfe die Logs:"
+    log "❌ Error: PHP-FPM could not be started!"
+    echo "⚠️ PHP-FPM could not be started! Check the logs:"
     echo "🔹 journalctl -xe -u php8.3-fpm.service"
     echo "🔹 cat /var/log/php8.3-fpm.log"
     exit 1
@@ -174,8 +175,8 @@ fi
 
 if [[ "$WEB_SERVER" == "apache" ]]; then
     if ! systemctl is-active --quiet apache2.service; then
-        log "❌ Fehler: Apache konnte nicht gestartet werden!"
-        echo "⚠️ Apache konnte nicht gestartet werden! Überprüfe die Logs:"
+        log "❌ Error: Apache could not be started!"
+        echo "⚠️ Apache could not be started! Check the logs:"
         echo "🔹 journalctl -xe -u apache2.service"
         echo "🔹 cat /var/log/apache2/error.log"
         exit 1
@@ -184,8 +185,8 @@ fi
 
 if [[ "$WEB_SERVER" == "nginx" ]]; then
     if ! systemctl is-active --quiet nginx.service; then
-        log "❌ Fehler: Nginx konnte nicht gestartet werden!"
-        echo "⚠️ Nginx konnte nicht gestartet werden! Überprüfe die Logs:"
+        log "❌ Error: Nginx could not be started!"
+        echo "⚠️ Nginx could not be started! Check the logs:"
         echo "🔹 journalctl -xe -u nginx.service"
         echo "🔹 cat /var/log/nginx/error.log"
         exit 1
@@ -193,6 +194,6 @@ if [[ "$WEB_SERVER" == "nginx" ]]; then
 fi
 
 
-log "✅ PHP 8.3 Installation abgeschlossen!"
-echo "✅ PHP 8.3 wurde erfolgreich installiert"
-echo "⚠️  Bei Fehlern folgende configs und Versionen überprüfen. Apache: /etc/apache2/sites-enabled & /etc/php/8.3/fpm/pool.d/"
+log "✅ PHP 8.3 installation completed!"
+echo "✅ PHP 8.3 has been successfully installed"
+echo "⚠️  If you encounter any errors, check these configs and versions. Apache: /etc/apache2/sites-enabled & /etc/php/8.3/fpm/pool.d/"

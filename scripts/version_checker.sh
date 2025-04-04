@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 0.1.0
+# Version: 0.1.1
 
 echo "🔍 NCM - Version Checker"
 echo "========================================="
@@ -10,7 +10,7 @@ NEXTCLOUD_PATHS=(
     "/var/www/nextcloud"
 )
 
-NC_VERSION="Nicht gefunden"
+NC_VERSION="Not found"
 for path in "${NEXTCLOUD_PATHS[@]}"; do
     if [ -f "$path/version.php" ]; then
         NC_VERSION=$(grep "'version'" "$path/version.php" | awk -F "'" '{print $4}')
@@ -19,8 +19,8 @@ for path in "${NEXTCLOUD_PATHS[@]}"; do
     fi
 done
 
-if [ "$NC_VERSION" == "Nicht gefunden" ]; then
-    echo "⚠️ Nextcloud nicht gefunden!"
+if [ "$NC_VERSION" == "Not found" ]; then
+    echo "⚠️ Nextcloud not found!"
 fi
 
 # === PHP Version ===
@@ -28,7 +28,7 @@ if command -v php &> /dev/null; then
     PHP_VERSION=$(php -v | head -n 1 | awk '{print $2}')
     echo "📌 PHP Version: $PHP_VERSION"
 else
-    echo "⚠️ PHP nicht installiert!"
+    echo "⚠️ PHP not installed!"
 fi
 
 # === MySQL / MariaDB Version (Server & Client) ===
@@ -39,7 +39,7 @@ elif command -v mariadb &> /dev/null; then
     MARIADB_SERVER_VERSION=$(mariadb --version | awk '{print $5}' | tr -d ",")
     echo "📌 MariaDB Server Version: $MARIADB_SERVER_VERSION"
 else
-    echo "⚠️ MySQL/MariaDB Server nicht gefunden!"
+    echo "⚠️ MySQL/MariaDB Server not found!"
 fi
 
 if command -v mysqladmin &> /dev/null; then
@@ -52,10 +52,10 @@ if command -v psql &> /dev/null; then
     PG_VERSION=$(psql -V | awk '{print $3}')
     echo "📌 PostgreSQL Version: $PG_VERSION"
 else
-    echo "⚠️ PostgreSQL nicht installiert!"
+    echo "⚠️ PostgreSQL not installed!"
 fi
 
-# === Webserver (Apache oder Nginx) ===
+# === Webserver (Apache or Nginx) ===
 if command -v apache2 &> /dev/null; then
     APACHE_VERSION=$(apache2 -v | grep "Server version" | awk '{print $3}')
     echo "📌 Apache Version: $APACHE_VERSION"
@@ -68,7 +68,7 @@ if command -v nginx &> /dev/null; then
     NGINX_VERSION=$(nginx -v 2>&1 | awk -F/ '{print "📌 Nginx Version: " $2}')
     echo "$NGINX_VERSION"
 else
-    echo "⚠️ Nginx nicht installiert!"
+    echo "⚠️ Nginx not installed!"
 fi
 
 echo "========================================="
