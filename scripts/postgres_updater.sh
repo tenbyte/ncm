@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Version: 0.1.2
+# Version: 0.1.3
 # Description: PostgreSQL Upgrade Script
 
 if [ "$EUID" -ne 0 ]; then 

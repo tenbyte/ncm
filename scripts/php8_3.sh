@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Version: 0.1.2
+# Version: 0.1.3
 
 LOG_FILE="/var/log/php8.3_install.log"
 
@@ -182,4 +182,4 @@ fi
 
 log "✅ PHP 8.3 installation completed!"
 echo "✅ PHP 8.3 has been successfully installed"
-echo "⚠️  If you encounter any errors, check these configs and versions. Apache: /etc/apache2/sites-enabled & /etc/php/8.3/fpm/pool.d/"
+echo "⚠️  You have to update the version in the following configs: Apache: /etc/apache2/sites-enabled & /etc/php/8.3/fpm/pool.d/"

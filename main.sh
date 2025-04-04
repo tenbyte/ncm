@@ -3,12 +3,24 @@
 REPO_URL="https://github.com/tenbyte/ncm"
 RAW_URL="https://raw.githubusercontent.com/tenbyte/ncm/main"
 SCRIPTS_DIR="./scripts"
-CURRENT_VERSION="0.1.1"
+CURRENT_VERSION="0.1.3"
 
+# Farben und Stile
 CYAN="\033[36m"
-WHITE="\033[0m"
+WHITE="\033[37m"
+YELLOW="\033[33m"
+GREEN="\033[32m"
+RED="\033[31m"
+BLUE="\033[34m"
+MAGENTA="\033[35m"
 BOLD="\033[1m"
+DIM="\033[2m"
+UNDERLINE="\033[4m"
 RESET="\033[0m"
+BG_BLUE="\033[44m"
+
+# Get hostname
+HOSTNAME=$(hostname)
 
 for script in "$SCRIPTS_DIR"/*.sh; do
     [ -f "$script" ] && chmod +x "$script"
@@ -125,6 +137,16 @@ list_online_scripts() {
     done
 }
 
+toggle_maintenance() {
+    mode="$1"
+    if [ "$mode" != "on" ] && [ "$mode" != "off" ]; then
+        echo "❌ Invalid maintenance mode!"
+        return 1
+    fi
+    
+    bash "$SCRIPTS_DIR/maintenance.sh" "$mode"
+}
+
 show_menu() {
     clear
     echo -e "${CYAN}  __ ${RESET}${WHITE}    _             _           _       "
@@ -135,26 +157,46 @@ show_menu() {
     echo -e "                            |___/         ${RESET}"
     echo -e ""
     echo -e "${BOLD}${CYAN}       POWERED BY TENBYTE ${RESET}\n"
-    echo "==============================="
-    echo " NCM by Tenbyte v$CURRENT_VERSION"
-    echo "==============================="
-    echo "1) Check for updates & update all scripts"
-    echo "2) Show & run local scripts"
-    echo "3) Check online available scripts"
-    echo "4) Exit"
-    echo "==============================="
-    read -p "Choose an option: " choice
+    echo -e "${BG_BLUE}${WHITE}${BOLD} SYSTEM INFORMATION ${RESET}"
+    echo -e "${CYAN}╭─────────────────────────────────╮${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}Hostname:${RESET} ${GREEN}$HOSTNAME${RESET}        ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}Version:${RESET}  ${YELLOW}v$CURRENT_VERSION${RESET}              ${CYAN}│${RESET}"
+    echo -e "${CYAN}╰─────────────────────────────────╯${RESET}"
+    echo ""
+    echo -e "${BG_BLUE}${WHITE}${BOLD} MAIN MENU ${RESET}"
+    echo -e "${CYAN}╭─────────────────────────────────╮${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}1)${RESET} ${WHITE}System Update & Scripts${RESET}        ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}2)${RESET} ${WHITE}Local Scripts Manager${RESET}          ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}3)${RESET} ${WHITE}Online Scripts Browser${RESET}         ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}4)${RESET} ${GREEN}Enable Maintenance Mode${RESET}        ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}5)${RESET} ${RED}Disable Maintenance Mode${RESET}       ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}6)${RESET} ${YELLOW}Exit${RESET}                          ${CYAN}│${RESET}"
+    echo -e "${CYAN}╰─────────────────────────────────╯${RESET}"
+    
+    echo -e "\n${DIM}Enter your choice [1-6]:${RESET} "
+    read -p "" choice
 
     case $choice in
         1) check_update ;;
         2) run_local_script ;;
         3) list_online_scripts ;;
-        4) exit 0 ;;
-        *) echo "Invalid input!" ;;
+        4) toggle_maintenance "on" ;;
+        5) toggle_maintenance "off" ;;
+        6) 
+           echo -e "\n${YELLOW}Goodbye!${RESET}"
+           exit 0 
+           ;;
+        *) 
+           echo -e "\n${RED}❌ Invalid input!${RESET}"
+           sleep 2
+           ;;
     esac
 }
 
 while true; do
     show_menu
-    read -p "Press Enter to continue..." 
+    if [ $? -ne 0 ]; then
+        echo -e "\n${DIM}Drücke Enter zum Fortfahren...${RESET}"
+        read
+    fi
 done
