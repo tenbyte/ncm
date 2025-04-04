@@ -3,9 +3,9 @@
 REPO_URL="https://github.com/tenbyte/ncm"
 RAW_URL="https://raw.githubusercontent.com/tenbyte/ncm/main"
 SCRIPTS_DIR="./scripts"
-CURRENT_VERSION="0.1.3"
+CURRENT_VERSION="0.1.4"
 
-# Farben und Stile
+# Colors and styles
 CYAN="\033[36m"
 WHITE="\033[37m"
 YELLOW="\033[33m"
@@ -19,7 +19,6 @@ UNDERLINE="\033[4m"
 RESET="\033[0m"
 BG_BLUE="\033[44m"
 
-# Get hostname
 HOSTNAME=$(hostname)
 
 for script in "$SCRIPTS_DIR"/*.sh; do
@@ -27,17 +26,30 @@ for script in "$SCRIPTS_DIR"/*.sh; do
 done
 
 update_all() {
-    echo "🔄 Updating all scripts from GitHub..."
-
-    curl -s -o main.sh "${RAW_URL}/main.sh" && chmod +x main.sh
+    echo "🔄 Updating NCM System..."
+    
+    # Update main script first
+    echo "📥 Downloading main script updates..."
+    curl -s -o main.sh.tmp "${RAW_URL}/main.sh"
+    
+    if [ $? -eq 0 ] && [ -f main.sh.tmp ]; then
+        chmod +x main.sh.tmp
+        mv main.sh.tmp main.sh
+        echo "✅ Main script updated"
+    else
+        echo "❌ Failed to update main script"
+        rm -f main.sh.tmp
+        return 1
+    fi
 
     [ ! -d "$SCRIPTS_DIR" ] && mkdir -p "$SCRIPTS_DIR"
 
+    echo "📥 Downloading script updates..."
     ONLINE_SCRIPTS=$(curl -s "https://api.github.com/repos/tenbyte/ncm/contents/scripts" | grep '"name"' | awk -F '"' '{print $4}')
 
     if [ -z "$ONLINE_SCRIPTS" ]; then
-        echo "⚠️ Could not fetch online scripts!"
-        return
+        echo "⚠️ Could not fetch scripts!"
+        return 1
     fi
 
     for script in $ONLINE_SCRIPTS; do
@@ -46,46 +58,43 @@ update_all() {
         chmod +x "$SCRIPTS_DIR/$script"
     done
 
-    echo "✅ Update completed! Please restart the script."
-    exit 0
+    echo "✅ Update completed! System will restart..."
+    exec ./main.sh
 }
 
 check_update() {
-    echo "🔄 Checking for main script updates..."
+    echo "🔄 Checking for updates..."
     LATEST_VERSION=$(curl -s "${RAW_URL}/version.txt" | tr -d '\r')
 
     if [ -z "$LATEST_VERSION" ]; then
         echo "⚠️ Could not fetch version information!"
-        return
+        return 1
     fi
 
     if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
         echo "🚀 Update available: $LATEST_VERSION (current: $CURRENT_VERSION)"
-        echo "Do you want to update the entire script package? (y/n)"
-        read -r choice
+        read -p "Do you want to update? (y/n): " choice
         if [ "$choice" == "y" ]; then
             update_all
         fi
     else
-        echo "✅ You are using the latest version ($CURRENT_VERSION)."
-    fi
-
-    echo "⚠️ Do you want to perform a force update anyway? (y/n)"
-    read -r force_choice
-    if [ "$force_choice" == "y" ]; then
-        update_all
+        echo "✅ System is up to date ($CURRENT_VERSION)"
+        read -p "Force update anyway? (y/n): " force_choice
+        if [ "$force_choice" == "y" ]; then
+            update_all
+        fi
     fi
 }
 
-run_local_script() {
+run_scripts() {
     scripts=($(ls "$SCRIPTS_DIR"/*.sh 2>/dev/null))
     
     if [ ${#scripts[@]} -eq 0 ]; then
-        echo "⚠️ No local scripts found!"
-        return
+        echo "⚠️ No scripts found!"
+        return 1
     fi
 
-    echo "📂 Available local scripts:"
+    echo "📂 Available scripts:"
     for i in "${!scripts[@]}"; do
         echo "$((i+1))) $(basename "${scripts[$i]}")"
     done
@@ -94,7 +103,7 @@ run_local_script() {
     read -p "Choose a script to run: " choice
 
     if [ "$choice" -eq 0 ]; then
-        return
+        return 0
     elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#scripts[@]} ]; then
         echo "🔄 Starting $(basename "${scripts[$((choice-1))]}")..."
         bash "${scripts[$((choice-1))]}"
@@ -103,40 +112,6 @@ run_local_script() {
     else
         echo "❌ Invalid input!"
     fi
-}
-
-list_online_scripts() {
-    echo "🌍 Checking online scripts & local versions..."
-    
-    VERSION_DATA=$(curl -s "$RAW_URL/scripts/version.txt")
-
-    if [ -z "$VERSION_DATA" ]; then
-        echo "⚠️ Could not fetch online version file!"
-        return
-    fi
-
-    echo -e "📂 Comparing local vs. online scripts:"
-    echo "--------------------------------------"
-
-    echo "$VERSION_DATA" | while IFS="=" read -r script version_online; do
-        local_script="$SCRIPTS_DIR/$script"
-
-        if [ -f "$local_script" ]; then
-            version_local=$(grep -E "^# Version: " "$local_script" | awk '{print $3}')
-
-            if [ -z "$version_local" ]; then
-                version_local="Unknown"
-            fi
-
-            if [ "$version_local" == "$version_online" ]; then
-                echo -e "✅ \e[32m$script (Version: $version_local) is up to date\e[0m"
-            else
-                echo -e "🔄 \e[33m$script (Local: $version_local, Online: $version_online) - Update available!\e[0m"
-            fi
-        else
-            echo -e "❌ \e[31m$script missing locally! (Online: $version_online)\e[0m"
-        fi
-    done
 }
 
 toggle_maintenance() {
@@ -159,32 +134,32 @@ show_menu() {
     echo -e "                            |___/         ${RESET}"
     echo -e ""
     echo -e "${BOLD}${CYAN}       POWERED BY TENBYTE ${RESET}\n"
-    echo -e "${BG_BLUE}${WHITE}${BOLD} SYSTEM INFORMATION ${RESET}"
-    echo -e "${CYAN}╭─────────────────────────────────${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}Hostname:${RESET} ${GREEN}$HOSTNAME${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}Version:${RESET}  ${YELLOW}v$CURRENT_VERSION${RESET}"
-    echo -e "${CYAN}╰─────────────────────────────────${RESET}"
-    echo ""
-    echo -e "${BG_BLUE}${WHITE}${BOLD} MAIN MENU ${RESET}"
-    echo -e "${CYAN}╭─────────────────────────────────${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}1)${RESET} ${WHITE}System Update & Scripts${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}2)${RESET} ${WHITE}Local Scripts Manager${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}3)${RESET} ${WHITE}Online Scripts Browser${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}4)${RESET} ${GREEN}Enable Maintenance Mode${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}5)${RESET} ${RED}Disable Maintenance Mode${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}6)${RESET} ${YELLOW}Exit${RESET}"
-    echo -e "${CYAN}╰─────────────────────────────────${RESET}"
     
-    echo -e "\n${DIM}Enter your choice [1-6]:${RESET} "
+    echo -e "${BG_BLUE}${WHITE}${BOLD} SYSTEM INFORMATION ${RESET}"
+    echo -e "${CYAN}╭─────────────────────────────────╮${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}Hostname:${RESET} ${GREEN}$HOSTNAME${RESET}        ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}Version:${RESET}  ${YELLOW}v$CURRENT_VERSION${RESET}              ${CYAN}│${RESET}"
+    echo -e "${CYAN}╰─────────────────────────────────╯${RESET}"
+    echo ""
+    
+    echo -e "${BG_BLUE}${WHITE}${BOLD} MAIN MENU ${RESET}"
+    echo -e "${CYAN}╭─────────────────────────────────╮${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}1)${RESET} ${WHITE}Check for Updates${RESET}             ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}2)${RESET} ${WHITE}Scripts Manager${RESET}              ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}3)${RESET} ${GREEN}Enable Maintenance Mode${RESET}      ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}4)${RESET} ${RED}Disable Maintenance Mode${RESET}     ${CYAN}│${RESET}"
+    echo -e "${CYAN}│${RESET} ${BOLD}5)${RESET} ${YELLOW}Exit${RESET}                        ${CYAN}│${RESET}"
+    echo -e "${CYAN}╰─────────────────────────────────╯${RESET}"
+    
+    echo -e "\n${DIM}Enter your choice [1-5]:${RESET} "
     read -p "" choice
 
     case $choice in
         1) check_update ;;
-        2) run_local_script ;;
-        3) list_online_scripts ;;
-        4) toggle_maintenance "on" ;;
-        5) toggle_maintenance "off" ;;
-        6) 
+        2) run_scripts ;;
+        3) toggle_maintenance "on" ;;
+        4) toggle_maintenance "off" ;;
+        5) 
            echo -e "\n${YELLOW}Goodbye!${RESET}"
            exit 0 
            ;;
@@ -198,7 +173,7 @@ show_menu() {
 while true; do
     show_menu
     if [ $? -ne 0 ]; then
-        echo -e "\n${DIM}Drücke Enter zum Fortfahren...${RESET}"
+        echo -e "\n${DIM}Press Enter to continue...${RESET}"
         read
     fi
 done

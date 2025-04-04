@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 0.1.3
+# Version: 1.0.3
 
 if [ "$EUID" -ne 0 ]; then 
     echo "❌ This script must be run as root!"
@@ -65,14 +65,14 @@ echo "   3. Drop the old cluster after successful migration"
 echo ""
 echo "💾 PLEASE ENSURE YOU HAVE A BACKUP OF YOUR DATABASES!"
 echo ""
-read -p "Do you have a current backup? (Type y to proceed): " backup_confirm
-if [ "$backup_confirm" != "y" ]; then
+read -p "Do you have a current backup? (Type YES to proceed): " backup_confirm
+if [ "$backup_confirm" != "YES" ]; then
     echo "❌ Aborted: Please create a backup first!"
     exit 1
 fi
 
-read -p "Are you sure you want to proceed with the upgrade? (Type y to proceed): " upgrade_confirm
-if [ "$upgrade_confirm" != "y" ]; then
+read -p "Are you sure you want to proceed with the upgrade? (Type YES to proceed): " upgrade_confirm
+if [ "$upgrade_confirm" != "YES" ]; then
     echo "❌ Upgrade aborted!"
     exit 1
 fi
@@ -91,22 +91,11 @@ apt-get update
 echo "⬇️ Installing PostgreSQL $target_version..."
 apt-get install -y postgresql-$target_version postgresql-server-dev-$target_version postgresql-contrib-$target_version libpq-dev postgresql-$target_version-hypopg
 
-echo -e "\n${RED}⚠️  FINAL WARNING ⚠️${RESET}"
-echo "────────────────────────"
-echo "🔴 New PostgreSQL $target_version is installed."
-echo "🔴 The next step will migrate databases and drop the old cluster."
-echo ""
-read -p "Last chance to abort. Proceed? (Type y): " final_confirm
-if [ "$final_confirm" != "y" ]; then
-    echo "❌ Upgrade aborted!"
-    exit 1
-fi
-
 echo "⏸️ Stopping PostgreSQL Service..."
 systemctl stop postgresql
 
-echo "🔄 Performing cluster upgrade..."
-read -p "About to drop cluster $target_version. Continue? (y/n): " drop_confirm
+echo "🔄 Preparing cluster upgrade..."
+read -p "About to drop new cluster $target_version. Continue? (y/n): " drop_confirm
 if [ "$drop_confirm" != "y" ]; then
     echo "❌ Upgrade aborted!"
     exit 1
