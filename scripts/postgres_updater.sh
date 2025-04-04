@@ -65,17 +65,12 @@ echo "   3. Drop the old cluster after successful migration"
 echo ""
 echo "💾 PLEASE ENSURE YOU HAVE A BACKUP OF YOUR DATABASES!"
 echo ""
-read -p "Do you have a current backup? (Type YES to proceed): " backup_confirm
-if [ "$backup_confirm" != "YES" ]; then
+read -p "Do you have a current backup? (Type y to proceed): " backup_confirm
+if [ "$backup_confirm" != "y" ]; then
     echo "❌ Aborted: Please create a backup first!"
     exit 1
 fi
 
-read -p "Are you sure you want to proceed with the upgrade? (Type YES to proceed): " upgrade_confirm
-if [ "$upgrade_confirm" != "YES" ]; then
-    echo "❌ Upgrade aborted!"
-    exit 1
-fi
 
 echo "🔄 Starting upgrade from PostgreSQL $current_version to version $target_version..."
 
@@ -95,19 +90,11 @@ echo "⏸️ Stopping PostgreSQL Service..."
 systemctl stop postgresql
 
 echo "🔄 Preparing cluster upgrade..."
-read -p "About to drop new cluster $target_version. Continue? (y/n): " drop_confirm
-if [ "$drop_confirm" != "y" ]; then
-    echo "❌ Upgrade aborted!"
-    exit 1
-fi
+read -p "About to drop new cluster $target_version."
 pg_dropcluster $target_version main --stop
 
 echo "🔄 Upgrading cluster..."
-read -p "About to upgrade cluster from $current_version to $target_version. Continue? (y/n): " upgrade_cluster_confirm
-if [ "$upgrade_cluster_confirm" != "y" ]; then
-    echo "❌ Upgrade aborted!"
-    exit 1
-fi
+read -p "About to upgrade cluster from $current_version to $target_version."
 pg_upgradecluster $current_version main
 
 echo "🔄 Dropping old cluster..."
