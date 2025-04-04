@@ -67,3 +67,6 @@ else
 fi
 
 echo "========================================="
+
+echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
+read

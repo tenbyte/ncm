@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 0.1.2
+# Version: 0.1.3
 
 if [ "$EUID" -ne 0 ]; then 
     echo "❌ This script must be run as root!"
@@ -45,3 +45,6 @@ case "$mode" in
         exit 1
         ;;
 esac
+
+echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
+read

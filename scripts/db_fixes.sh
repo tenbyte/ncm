@@ -25,7 +25,7 @@ run_occ() {
     sudo -u www-data php "$NEXTCLOUD_PATH/occ" "$@"
 }
 
-echo "🔧 Nextcloud Maintenance Script"
+echo "🔧 Nextcloud Database Maintenance"
 echo "================================="
 
 check_nextcloud
@@ -57,3 +57,6 @@ run_occ maintenance:mode --off
 echo "✅ Maintenance completed successfully!"
 echo "⚠️ If you encounter any issues, check the Nextcloud logs at:"
 echo "🔹 $NEXTCLOUD_PATH/data/nextcloud.log"
+
+echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
+read
