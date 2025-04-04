@@ -5,7 +5,7 @@ LOG_FILE="/var/log/php8.3_install.log"
 
 echo "🔄 PHP 8.3 Installations- und Konfigurationsskript für Nextcloud"
 echo "================================================================="
-echo "ℹ️  Dieses Skript installiert PHP 8.3 und passt die Konfiguration für Nextcloud an."
+echo "ℹ️  Dieses Skript installiert PHP 8.3"
 
 # === Sicherstellen, dass Root-Rechte vorhanden sind ===
 if [[ $EUID -ne 0 ]]; then
@@ -47,14 +47,6 @@ else
     log "❌ Ungültige Eingabe! Breche ab."
     exit 1
 fi
-
-# === PHP 8.3 als Standard setzen ===
-log "🛠 Setze PHP 8.3 als Standard..."
-update-alternatives --set php /usr/bin/php8.3
-update-alternatives --set phar /usr/bin/phar8.3
-update-alternatives --set phar.phar /usr/bin/phar.phar8.3
-update-alternatives --set phpize /usr/bin/phpize8.3
-update-alternatives --set php-config /usr/bin/php-config8.3
 
 # === Automatisch PHP 8.3 als Standard auswählen, falls mehrere Versionen existieren ===
 if update-alternatives --config php | grep -q "/usr/bin/php8.3"; then
@@ -161,84 +153,13 @@ if [[ "$DB_CHOICE" == "2" ]]; then
 fi
 
 
-# === Apache oder Nginx erkennen ===
-WEB_SERVER=""
-if command -v apache2 &> /dev/null; then
-    WEB_SERVER="apache"
-elif command -v nginx &> /dev/null; then
-    WEB_SERVER="nginx"
-else
-    log "⚠️  Kein Webserver erkannt! Bitte manuell prüfen."
-fi
-
-# === Interaktive Abfrage der vorherigen PHP-Version ===
-echo "Welche PHP-Version wurde vorher genutzt? (z.B. 8.2)"
-read -r OLD_PHP_VERSION
-
-if [ -z "$OLD_PHP_VERSION" ]; then
-    log "⚠️  Keine vorherige PHP-Version eingegeben. Bitte manuell prüfen."
-    exit 1
-fi
-
-# === Nextcloud PHP-FPM Pool für Apache anpassen ===
-if [[ "$WEB_SERVER" == "apache" ]]; then
-    log "📂 Kopiere und aktualisiere Nextcloud PHP-FPM Pool von $OLD_PHP_VERSION auf 8.3..."
-
-    if [ -f "/etc/php/$OLD_PHP_VERSION/fpm/pool.d/nextcloud.conf" ]; then
-        cp "/etc/php/$OLD_PHP_VERSION/fpm/pool.d/nextcloud.conf" "/etc/php/8.3/fpm/pool.d/nextcloud.conf"
-        sed -i "s/php$OLD_PHP_VERSION-fpm.nextcloud.sock/php8.3-fpm.nextcloud.sock/g" /etc/php/8.3/fpm/pool.d/nextcloud.conf
-    else
-        log "⚠️  Keine bestehende Nextcloud PHP-FPM Konfiguration für PHP $OLD_PHP_VERSION gefunden!"
-    fi
-
-    # Apache Nextcloud Konfigurationsdatei anpassen
-    APACHE_CONFIG="/etc/apache2/sites-enabled/nextcloud.conf"
-    if [ -f "$APACHE_CONFIG" ]; then
-        sed -i "s/php$OLD_PHP_VERSION-fpm.nextcloud.sock/php8.3-fpm.nextcloud.sock/g" "$APACHE_CONFIG"
-        log "✅ Apache Nextcloud-Konfiguration wurde angepasst!"
-    else
-        log "⚠️  Keine Apache Nextcloud-Konfiguration gefunden. Bitte manuell überprüfen!"
-    fi
-fi
-
-# === Nginx PHP-FPM Sockets anpassen ===
-if [[ "$WEB_SERVER" == "nginx" ]]; then
-    log "🔧 Passe PHP-FPM Socket für Nginx an..."
-    NGINX_CONF="/etc/nginx/conf.d/http.conf"
-    
-    if [ -f "$NGINX_CONF" ]; then
-        sed -i "s/php$OLD_PHP_VERSION-fpm.sock/php8.3-fpm.sock/g" "$NGINX_CONF"
-        log "✅ Nginx Konfiguration wurde angepasst!"
-    else
-        log "⚠️  Keine Nginx-Konfigurationsdatei gefunden. Bitte manuell überprüfen!"
-    fi
-fi
-
-# === Nextcloud PHP-FPM Pool (nextcloud.conf oder domain.conf) anpassen ===
-log "📂 Aktualisiere PHP-FPM Pool Konfigurationsdateien für Nextcloud..."
-PHP_FPM_POOL_CONF="/etc/php/8.3/fpm/pool.d/nextcloud.conf"
-DOMAIN_CONF=$(find /etc/php/8.3/fpm/pool.d/ -name "*.conf" | grep -Ev "www.conf|nextcloud.conf")
-
-if [ -f "$PHP_FPM_POOL_CONF" ]; then
-    sed -i "s/php$OLD_PHP_VERSION-fpm.nextcloud.sock/php8.3-fpm.nextcloud.sock/g" "$PHP_FPM_POOL_CONF"
-    log "✅ `nextcloud.conf` wurde aktualisiert."
-fi
-
-if [ -n "$DOMAIN_CONF" ]; then
-    sed -i "s/php$OLD_PHP_VERSION-fpm.nextcloud.sock/php8.3-fpm.nextcloud.sock/g" "$DOMAIN_CONF"
-    log "✅ `$(basename "$DOMAIN_CONF")` wurde aktualisiert."
-fi
-
-
-# === Webserver und PHP-FPM neu starten ===
-if [[ "$WEB_SERVER" == "apache" ]]; then
-    a2enmod php8.3
-    log "♻️  Starte Apache mit PHP 8.3 neu..."
-    systemctl restart php8.3-fpm.service apache2.service
-elif [[ "$WEB_SERVER" == "nginx" ]]; then
-    log "♻️  Starte Nginx mit PHP 8.3 neu..."
-    systemctl restart php8.3-fpm.service nginx.service
-fi
+# === PHP 8.3 als Standard setzen ===
+log "🛠 Setze PHP 8.3 als Standard..."
+update-alternatives --set php /usr/bin/php8.3
+update-alternatives --set phar /usr/bin/phar8.3
+update-alternatives --set phar.phar /usr/bin/phar.phar8.3
+update-alternatives --set phpize /usr/bin/phpize8.3
+update-alternatives --set php-config /usr/bin/php-config8.3
 
 
 # === Überprüfen, ob Apache/PHP-FPM wirklich laufen ===
@@ -267,6 +188,6 @@ if [[ "$WEB_SERVER" == "nginx" && ! systemctl is-active --quiet nginx.service ]]
     exit 1
 fi
 
-log "✅ PHP 8.3 Installation & Konfiguration abgeschlossen!"
-echo "✅ PHP 8.3 wurde erfolgreich installiert und konfiguriert!"
+log "✅ PHP 8.3 Installation abgeschlossen!"
+echo "✅ PHP 8.3 wurde erfolgreich installiert"
 echo "⚠️  Bei Fehlern folgende configs und Versionen überprüfen. Apache: /etc/apache2/sites-enabled & /etc/php/8.3/fpm/pool.d/"
