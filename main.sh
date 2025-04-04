@@ -171,7 +171,7 @@ show_menu() {
     echo -e "${CYAN}│${RESET} ${BOLD}4)${RESET} ${GREEN}Enable Maintenance Mode${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}5)${RESET} ${RED}Disable Maintenance Mode${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}6)${RESET} ${YELLOW}Exit${RESET}"
-    echo -e "${CYAN}╰─────────────────────────────────╯${RESET}"
+    echo -e "${CYAN}╰─────────────────────────────────${RESET}"
     
     echo -e "\n${DIM}Enter your choice [1-6]:${RESET} "
     read -p "" choice
