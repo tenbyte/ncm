@@ -1,10 +1,9 @@
 #!/bin/bash
-# Version: 0.1.1
+# Version: 0.1.2
 
 echo "🔍 NCM - Version Checker"
 echo "========================================="
 
-# === Nextcloud Version ===
 NEXTCLOUD_PATHS=(
     "/var/www/html/nextcloud"
     "/var/www/nextcloud"
@@ -23,7 +22,6 @@ if [ "$NC_VERSION" == "Not found" ]; then
     echo "⚠️ Nextcloud not found!"
 fi
 
-# === PHP Version ===
 if command -v php &> /dev/null; then
     PHP_VERSION=$(php -v | head -n 1 | awk '{print $2}')
     echo "📌 PHP Version: $PHP_VERSION"
@@ -31,7 +29,6 @@ else
     echo "⚠️ PHP not installed!"
 fi
 
-# === MySQL / MariaDB Version (Server & Client) ===
 if command -v mysql &> /dev/null; then
     MYSQL_SERVER_VERSION=$(mysql -V | awk '{print $5}' | tr -d ",")
     echo "📌 MySQL Server Version: $MYSQL_SERVER_VERSION"
@@ -47,7 +44,6 @@ if command -v mysqladmin &> /dev/null; then
     echo "📌 MySQL/MariaDB Client Version: $MYSQL_CLIENT_VERSION"
 fi
 
-# === PostgreSQL Version ===
 if command -v psql &> /dev/null; then
     PG_VERSION=$(psql -V | awk '{print $3}')
     echo "📌 PostgreSQL Version: $PG_VERSION"
@@ -55,7 +51,6 @@ else
     echo "⚠️ PostgreSQL not installed!"
 fi
 
-# === Webserver (Apache or Nginx) ===
 if command -v apache2 &> /dev/null; then
     APACHE_VERSION=$(apache2 -v | grep "Server version" | awk '{print $3}')
     echo "📌 Apache Version: $APACHE_VERSION"

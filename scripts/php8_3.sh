@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Version: 0.1.1
+# Version: 0.1.2
 
 LOG_FILE="/var/log/php8.3_install.log"
 
@@ -8,36 +8,30 @@ echo "🔄 PHP 8.3 Installation and Configuration Script for Nextcloud"
 echo "================================================================="
 echo "ℹ️  This script will install PHP 8.3"
 
-# === Ensure root privileges ===
 if [[ $EUID -ne 0 ]]; then
    echo "❌ This script must be run as root!" 
    exit 1
 fi
 
-# === Logging function ===
 log() {
     echo "$1"
     echo "$(date +'%Y-%m-%d %H:%M:%S') $1" >> "$LOG_FILE"
 }
 
-# === Update system ===
 log "🔄 Performing system update..."
 apt update && apt -y upgrade && apt -y autoremove
 
-# === Add PHP repository ===
 log "🔄 Adding PHP repository from Ondrej..."
 apt install -y lsb-release gnupg2 ca-certificates apt-transport-https software-properties-common
 add-apt-repository ppa:ondrej/php -y
 apt update
 
 
-# === Choose MariaDB or PostgreSQL ===
 echo "Which database does your Nextcloud setup use?"
 echo "1) MariaDB/MySQL"
 echo "2) PostgreSQL"
 read -r DB_CHOICE
 
-# === Install PHP 8.3 (depending on DB variant) ===
 if [[ "$DB_CHOICE" == "1" ]]; then
     log "📦 Installing PHP 8.3 for MariaDB/MySQL..."
     apt install -y php-common php8.3-{fpm,gd,curl,xml,zip,intl,mbstring,bz2,ldap,apcu,bcmath,gmp,imagick,igbinary,mysql,redis,smbclient,sqlite3,cli,common,opcache,readline} imagemagick libmagickcore-6.q16-6-extra --allow-change-held-packages
@@ -49,7 +43,6 @@ else
     exit 1
 fi
 
-# === Automatically select PHP 8.3 as default if multiple versions exist ===
 if update-alternatives --config php | grep -q "/usr/bin/php8.3"; then
     log "✅ PHP 8.3 has been successfully set as default."
 else
@@ -57,15 +50,12 @@ else
 fi
 
 
-# === Ensure timezone is set correctly ===
 log "🕒 Setting timezone to Europe/Berlin..."
 timedatectl set-timezone Europe/Berlin
 
-# === PHP 8.3 optimization ===
 log "🛠  Configuring PHP 8.3 for Nextcloud..."
 sudo a2enmod php8.3 
 
-# Create backups
 log "📂 Creating backups of all relevant PHP 8.3 configuration files..."
 cp /etc/php/8.3/fpm/pool.d/www.conf /etc/php/8.3/fpm/pool.d/www.conf.bak
 cp /etc/php/8.3/fpm/php-fpm.conf /etc/php/8.3/fpm/php-fpm.conf.bak
@@ -76,7 +66,6 @@ cp /etc/php/8.3/mods-available/opcache.ini /etc/php/8.3/mods-available/opcache.i
 cp /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.bak
 
 
-# Adjustments
 log "📌 Adjusting PHP-FPM parameters..."
 sed -i 's/pm = dynamic/pm = ondemand/' /etc/php/8.3/fpm/pool.d/www.conf
 sed -i 's/pm.max_children =.*/pm.max_children = 200/' /etc/php/8.3/fpm/pool.d/www.conf
@@ -122,7 +111,6 @@ sed -i "s/rights=\"none\" pattern=\"PDF\"/rights=\"read|write\" pattern=\"PDF\"/
 sed -i "s/rights=\"none\" pattern=\"XPS\"/rights=\"read|write\" pattern=\"XPS\"/" /etc/ImageMagick-6/policy.xml
 
 
-# === MariaDB / MySQL configuration adjustment ===
 if [[ "$DB_CHOICE" == "1" ]]; then
     log "🔧 Adjusting MySQL/MariaDB PHP 8.3 configuration..."
 
@@ -138,7 +126,7 @@ if [[ "$DB_CHOICE" == "1" ]]; then
     fi
 fi
 
-# === PostgreSQL configuration adjustment ===
+
 if [[ "$DB_CHOICE" == "2" ]]; then
     log "🔧 Adjusting PostgreSQL PHP 8.3 configuration..."
 
@@ -154,7 +142,6 @@ if [[ "$DB_CHOICE" == "2" ]]; then
 fi
 
 
-# === Set PHP 8.3 as default ===
 log "🛠 Setting PHP 8.3 as default..."
 update-alternatives --set php /usr/bin/php8.3
 update-alternatives --set phar /usr/bin/phar8.3
@@ -163,7 +150,6 @@ update-alternatives --set phpize /usr/bin/phpize8.3
 update-alternatives --set php-config /usr/bin/php-config8.3
 
 
-# === Check if Apache/PHP-FPM are really running ===
 log "🔍 Checking if PHP-FPM and webserver are running successfully..."
 if ! systemctl is-active --quiet php8.3-fpm.service; then
     log "❌ Error: PHP-FPM could not be started!"

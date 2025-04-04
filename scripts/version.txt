@@ -1,3 +1,4 @@
-version_checker.sh=0.1.0
-php8_3.sh=0.1.0
-postgres_updater.sh=1.0.0
+version_checker.sh=0.1.2
+php8_3.sh=0.1.2
+postgres_updater.sh=0.1.2
+nextcloud_maintenance.sh=0.1.2
