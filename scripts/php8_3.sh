@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Version: 0.1.3
+# Version: 0.1.4
 
 LOG_FILE="/var/log/php8.3_install.log"
 
@@ -26,6 +26,12 @@ apt install -y lsb-release gnupg2 ca-certificates apt-transport-https software-p
 add-apt-repository ppa:ondrej/php -y
 apt update
 
+log "🧹 Removing potentially conflicting packages..."
+apt remove -y php-imagick imagemagick php8.*-imagick || true
+apt autoremove -y
+
+log "🔄 Installing ImageMagick..."
+apt install -y imagemagick libmagickcore-6.q16-6-extra
 
 echo "Which database does your Nextcloud setup use?"
 echo "1) MariaDB/MySQL"
@@ -34,13 +40,31 @@ read -r DB_CHOICE
 
 if [[ "$DB_CHOICE" == "1" ]]; then
     log "📦 Installing PHP 8.3 for MariaDB/MySQL..."
-    apt install -y php-common php8.3-{fpm,gd,curl,xml,zip,intl,mbstring,bz2,ldap,apcu,bcmath,gmp,imagick,igbinary,mysql,redis,smbclient,sqlite3,cli,common,opcache,readline} imagemagick libmagickcore-6.q16-6-extra --allow-change-held-packages
+    apt install -y php8.3-fpm php8.3-gd php8.3-curl php8.3-xml php8.3-zip php8.3-intl php8.3-mbstring php8.3-bz2 php8.3-ldap php8.3-apcu php8.3-bcmath php8.3-gmp php8.3-igbinary php8.3-mysql php8.3-redis php8.3-smbclient php8.3-sqlite3 php8.3-cli php8.3-common php8.3-opcache php8.3-readline
 elif [[ "$DB_CHOICE" == "2" ]]; then
     log "📦 Installing PHP 8.3 for PostgreSQL..."
-    apt install -y php-common php8.3-{fpm,gd,curl,xml,zip,intl,mbstring,bz2,ldap,apcu,bcmath,gmp,imagick,igbinary,pgsql,redis,smbclient,sqlite3,cli,common,opcache,readline} imagemagick libmagickcore-6.q16-6-extra --allow-change-held-packages
+    apt install -y php8.3-fpm php8.3-gd php8.3-curl php8.3-xml php8.3-zip php8.3-intl php8.3-mbstring php8.3-bz2 php8.3-ldap php8.3-apcu php8.3-bcmath php8.3-gmp php8.3-igbinary php8.3-pgsql php8.3-redis php8.3-smbclient php8.3-sqlite3 php8.3-cli php8.3-common php8.3-opcache php8.3-readline
 else
     log "❌ Invalid input! Aborting."
     exit 1
+fi
+
+log "📦 Installing PHP-Imagick..."
+apt install -y php8.3-imagick
+
+# Check if Apache is installed before trying to enable PHP module
+if command -v apache2 >/dev/null 2>&1; then
+    log "🛠 Configuring PHP 8.3 for Apache..."
+    a2dismod php* || true
+    a2enmod php8.3 || true
+    systemctl restart apache2 || true
+fi
+
+# Check which web server is installed
+if command -v apache2 >/dev/null 2>&1; then
+    WEB_SERVER="apache"
+elif command -v nginx >/dev/null 2>&1; then
+    WEB_SERVER="nginx"
 fi
 
 if update-alternatives --config php | grep -q "/usr/bin/php8.3"; then

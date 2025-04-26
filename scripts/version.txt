@@ -1,5 +1,5 @@
-version_checker.sh=0.1.3
-php8_3.sh=0.1.3
-postgres_updater.sh=0.1.3
-db_fixes.sh=0.1.3
-maintenance.sh=0.1.3
+version_checker.sh=0.1.4
+php8_3.sh=0.1.4
+postgres_updater.sh=0.1.4
+db_fixes.sh=0.1.4
+maintenance.sh=0.1.4
