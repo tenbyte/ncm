@@ -54,7 +54,12 @@ fi
 get_nc_config_value() {
     local key="$1"
     if [ -f "$NEXTCLOUD_CONFIG" ]; then
-        php -r "include '$NEXTCLOUD_CONFIG'; echo isset($CONFIG['$key']) ? $CONFIG['$key'] : '';" 2>/dev/null
+        php -r "
+        \$config = include '$NEXTCLOUD_CONFIG';
+        if (isset(\$config['$key'])) {
+            echo \$config['$key'];
+        }
+        " 2>/dev/null
     fi
 }
 
@@ -176,17 +181,21 @@ show_menu() {
     echo -e "${CYAN}╭─────────────────────────────────${RESET}"
     scripts=( $(ls "$SCRIPTS_DIR"/*.sh 2>/dev/null) )
     for i in "${!scripts[@]}"; do
-        echo -e "${CYAN}│${RESET} ${BOLD}$((i+1)))${RESET} ${WHITE}$(basename \"${scripts[$i]}\")${RESET}"
+        echo -e "${CYAN}│${RESET} ${BOLD}$((i+1)))${RESET} ${WHITE}$(basename ${scripts[$i]})${RESET}"
     done
+    echo -e "${CYAN}│${RESET} ${BOLD}u)${RESET} ${MAGENTA}Force Update${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}0)${RESET} ${YELLOW}Exit${RESET}"
     echo -e "${CYAN}╰─────────────────────────────────${RESET}"
-    echo -e "\n${DIM}Enter your choice [0-${#scripts[@]}]:${RESET} "
+    echo -e "\n${DIM}Enter your choice [0-${#scripts[@]}, u]:${RESET} "
     read -p "" choice
     if [ "$choice" -eq 0 ]; then
         echo -e "\n${YELLOW}Goodbye!${RESET}"
         exit 0
+    elif [ "$choice" == "u" ] || [ "$choice" == "U" ]; then
+        echo -e "\n${MAGENTA}🔄 Starting Force Update...${RESET}"
+        update_all
     elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#scripts[@]} ]; then
-        echo "🔄 Starting $(basename \"${scripts[$((choice-1))]}\")..."
+        echo "🔄 Starting $(basename ${scripts[$((choice-1))]})..."
         bash "${scripts[$((choice-1))]}"
         echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
         read
