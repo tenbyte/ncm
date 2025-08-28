@@ -75,3 +75,7 @@ if [ -n "$NC_DATADIR" ] && [ -d "$NC_DATADIR" ]; then
 else
     echo "❌ Nextcloud datadirectory not found!"
 fi
+
+echo ""
+echo "Press Enter to return to main menu..."
+read

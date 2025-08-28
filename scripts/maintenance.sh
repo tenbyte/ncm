@@ -89,5 +89,6 @@ case "$mode" in
         ;;
 esac
 
-echo -e "\nPress Enter to return to main menu..."
+echo ""
+echo "Press Enter to return to main menu..."
 read

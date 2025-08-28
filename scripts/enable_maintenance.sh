@@ -62,3 +62,7 @@ if [ "$NEXTCLOUD_CONFIG_FOUND" -eq 0 ]; then
     exit 1
 fi
 sudo -u www-data php "$NEXTCLOUD_PATH/occ" maintenance:mode --on
+
+echo ""
+echo "Press Enter to return to main menu..."
+read

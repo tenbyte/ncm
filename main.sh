@@ -177,8 +177,6 @@ run_scripts() {
     elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#scripts[@]} ]; then
         echo "🔄 Starting $(basename "${scripts[$((choice-1))]}")..."
         bash "${scripts[$((choice-1))]}"
-        echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
-        read
     else
         echo "❌ Invalid input!"
     fi
@@ -227,8 +225,6 @@ show_menu() {
     elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#scripts[@]} ]; then
         echo "🔄 Starting $(basename ${scripts[$((choice-1))]})..."
         bash "${scripts[$((choice-1))]}"
-        echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
-        read
     else
         echo -e "\n${RED}❌ Invalid input!${RESET}"
         sleep 2

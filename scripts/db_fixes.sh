@@ -123,5 +123,6 @@ echo "✅ Maintenance completed successfully!"
 echo "⚠️ If you encounter any issues, check the Nextcloud logs at:"
 echo "🔹 $NEXTCLOUD_PATH/data/nextcloud.log"
 
-echo -e "\nPress Enter to return to main menu..."
+echo ""
+echo "Press Enter to return to main menu..."
 read

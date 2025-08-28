@@ -208,5 +208,6 @@ log "✅ PHP 8.3 installation completed!"
 echo "✅ PHP 8.3 has been successfully installed"
 echo "⚠️  You have to update the version in the following configs: Apache: /etc/apache2/sites-enabled & /etc/php/8.3/fpm/pool.d/"
 
-echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
+echo ""
+echo "Press Enter to return to main menu..."
 read

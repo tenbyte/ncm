@@ -113,5 +113,6 @@ else
     echo "Expected version: $target_version"
 fi
 
-echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
+echo ""
+echo "Press Enter to return to main menu..."
 read
