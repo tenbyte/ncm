@@ -55,9 +55,10 @@ get_nc_config_value() {
     local key="$1"
     if [ -f "$NEXTCLOUD_CONFIG" ]; then
         php -r "
-        \$config = include '$NEXTCLOUD_CONFIG';
-        if (isset(\$config['$key'])) {
-            echo \$config['$key'];
+        \$content = file_get_contents('$NEXTCLOUD_CONFIG');
+        eval('?>' . \$content);
+        if (isset(\$CONFIG['$key'])) {
+            echo \$CONFIG['$key'];
         }
         " 2>/dev/null
     fi
