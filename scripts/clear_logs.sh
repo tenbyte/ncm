@@ -68,12 +68,27 @@ get_nc_config_value() {
         " 2>/dev/null
     fi
 }
+
+echo "🗑️ Nextcloud Log Cleaner"
+echo "========================"
+
+NC_LOGFILE="$(get_nc_config_value logfile)"
 NC_DATADIR="$(get_nc_config_value datadirectory)"
-if [ -n "$NC_DATADIR" ] && [ -d "$NC_DATADIR" ]; then
-    rm -f "$NC_DATADIR/nextcloud.log"
-    echo "✅ Nextcloud logs deleted ($NC_DATADIR/nextcloud.log)"
+
+if [ -n "$NC_LOGFILE" ] && [ -f "$NC_LOGFILE" ]; then
+    rm -f "$NC_LOGFILE"
+    echo "✅ Nextcloud logs deleted (custom logfile: $NC_LOGFILE)"
+elif [ -n "$NC_DATADIR" ] && [ -d "$NC_DATADIR" ]; then
+    if [ -f "$NC_DATADIR/nextcloud.log" ]; then
+        rm -f "$NC_DATADIR/nextcloud.log"
+        echo "✅ Nextcloud logs deleted (standard location: $NC_DATADIR/nextcloud.log)"
+    else
+        echo "ℹ️ No log file found at standard location: $NC_DATADIR/nextcloud.log"
+    fi
 else
-    echo "❌ Nextcloud datadirectory not found!"
+    echo "❌ Could not determine Nextcloud log location!"
+    echo "   - No custom logfile defined in config"
+    echo "   - Datadirectory not found or not accessible"
 fi
 
 echo ""
