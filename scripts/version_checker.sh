@@ -1,25 +1,81 @@
 #!/bin/bash
 # Version: 0.1.5
 
+NCM_LOCAL_CONF="$(dirname "$0")/../ncm_local.conf"
+NEXTCLOUD_CONFIG=""
+NEXTCLOUD_CONFIG_FOUND=0
+NEXTCLOUD_PATH=""
+
+detect_nextcloud_config() {
+    local test_paths=(
+        "/var/www/nextcloud/config/config.php"
+        "/var/www/html/nextcloud/config/config.php"
+        "/opt/nextcloud/config/config.php"
+        "/usr/share/nextcloud/config/config.php"
+        "/home/nextcloud/config/config.php"
+        "./config/config.php"
+        "../config/config.php"
+        "../../config/config.php"
+    )
+    
+    for path in "${test_paths[@]}"; do
+        if [ -f "$path" ]; then
+            NEXTCLOUD_CONFIG="$path"
+            NEXTCLOUD_PATH="$(dirname "$(dirname "$path")")"
+            NEXTCLOUD_CONFIG_FOUND=1
+            return 0
+        fi
+    done
+    
+    if command -v find >/dev/null 2>&1; then
+        local find_result=$(find /var/www /opt /usr/share /home -name "config.php" -path "*/nextcloud/config/config.php" 2>/dev/null | head -1)
+        if [ -n "$find_result" ] && [ -f "$find_result" ]; then
+            NEXTCLOUD_CONFIG="$find_result"
+            NEXTCLOUD_PATH="$(dirname "$(dirname "$find_result")")"
+            NEXTCLOUD_CONFIG_FOUND=1
+            return 0
+        fi
+    fi
+    
+    if [ -f "$NCM_LOCAL_CONF" ]; then
+        source "$NCM_LOCAL_CONF"
+        if [ -n "$NEXTCLOUD_PATH" ] && [ -f "$NEXTCLOUD_PATH/config/config.php" ]; then
+            NEXTCLOUD_CONFIG="$NEXTCLOUD_PATH/config/config.php"
+            NEXTCLOUD_CONFIG_FOUND=1
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
+detect_nextcloud_config
+
+get_nc_config_value() {
+    local key="$1"
+    if [ -f "$NEXTCLOUD_CONFIG" ]; then
+        php -r "
+        \$content = file_get_contents('$NEXTCLOUD_CONFIG');
+        eval('?>' . \$content);
+        if (isset(\$CONFIG['$key'])) {
+            echo \$CONFIG['$key'];
+        }
+        " 2>/dev/null
+    fi
+}
+
 echo "🔍 NCM - Version Checker"
 echo "========================================="
 
-NEXTCLOUD_PATHS=(
-    "/var/www/html/nextcloud"
-    "/var/www/nextcloud"
-)
-
-NC_VERSION="Not found"
-for path in "${NEXTCLOUD_PATHS[@]}"; do
-    if [ -f "$path/version.php" ]; then
-        NC_VERSION=$(grep "'version'" "$path/version.php" | awk -F "'" '{print $4}')
-        echo "📌 Nextcloud Version: $NC_VERSION ($path)"
-        break
+if [ "$NEXTCLOUD_CONFIG_FOUND" -eq 1 ]; then
+    NC_VERSION="$(get_nc_config_value version)"
+    if [ -n "$NC_VERSION" ]; then
+        echo "📌 Nextcloud Version: $NC_VERSION ($NEXTCLOUD_PATH)"
+    else
+        echo "⚠️ Nextcloud Version not found in config!"
     fi
-done
-
-if [ "$NC_VERSION" == "Not found" ]; then
-    echo "⚠️ Nextcloud not found!"
+else
+    echo "⚠️ Nextcloud config.php not found!"
 fi
 
 if command -v php &> /dev/null; then
