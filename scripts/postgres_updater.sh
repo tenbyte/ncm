@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 1.0.4
+# Version: 0.1.5
 
 if [ "$EUID" -ne 0 ]; then 
     echo "❌ This script must be run as root!"

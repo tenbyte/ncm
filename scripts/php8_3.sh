@@ -1,6 +1,5 @@
 #!/bin/bash
-
-# Version: 0.1.4
+# Version: 0.1.5
 
 LOG_FILE="/var/log/php8.3_install.log"
 

@@ -3,7 +3,7 @@
 REPO_URL="https://github.com/tenbyte/ncm"
 RAW_URL="https://raw.githubusercontent.com/tenbyte/ncm/main"
 SCRIPTS_DIR="./scripts"
-CURRENT_VERSION="0.1.4"
+CURRENT_VERSION="0.1.5"
 CYAN="\033[36m"
 WHITE="\033[37m"
 YELLOW="\033[33m"
@@ -23,10 +23,47 @@ for script in "$SCRIPTS_DIR"/*.sh; do
     [ -f "$script" ] && chmod +x "$script"
 done
 
+NCM_LOCAL_CONF="./ncm_local.conf"
+NEXTCLOUD_CONFIG=""
+NEXTCLOUD_CONFIG_FOUND=0
+NEXTCLOUD_PATH=""
+
+if [ -f "/var/www/nextcloud/config/config.php" ]; then
+    NEXTCLOUD_CONFIG="/var/www/nextcloud/config/config.php"
+    NEXTCLOUD_PATH="/var/www/nextcloud"
+    NEXTCLOUD_CONFIG_FOUND=1
+elif [ -f "/var/www/html/nextcloud/config/config.php" ]; then
+    NEXTCLOUD_CONFIG="/var/www/html/nextcloud/config/config.php"
+    NEXTCLOUD_PATH="/var/www/html/nextcloud"
+    NEXTCLOUD_CONFIG_FOUND=1
+elif [ -f "$NCM_LOCAL_CONF" ]; then
+    source "$NCM_LOCAL_CONF"
+    if [ -n "$NEXTCLOUD_PATH" ] && [ -f "$NEXTCLOUD_PATH/config/config.php" ]; then
+        NEXTCLOUD_CONFIG="$NEXTCLOUD_PATH/config/config.php"
+        NEXTCLOUD_CONFIG_FOUND=1
+    fi
+fi
+
+if [ "$NEXTCLOUD_CONFIG_FOUND" -eq 0 ]; then
+    echo "# NCM Local Config" > "$NCM_LOCAL_CONF"
+    echo "# Please enter the path to your Nextcloud installation (without trailing /)" >> "$NCM_LOCAL_CONF"
+    echo "NEXTCLOUD_PATH='/var/www/nextcloud'" >> "$NCM_LOCAL_CONF"
+    echo "❌ Nextcloud config.php not found! Please enter the path in ncm_local.conf."
+fi
+
+get_nc_config_value() {
+    local key="$1"
+    if [ -f "$NEXTCLOUD_CONFIG" ]; then
+        php -r "include '$NEXTCLOUD_CONFIG'; echo isset($CONFIG['$key']) ? $CONFIG['$key'] : '';" 2>/dev/null
+    fi
+}
+
+NC_VERSION="$(get_nc_config_value version)"
+NC_URL="$(get_nc_config_value overwrite.cli.url)"
+NC_DATADIR="$(get_nc_config_value datadirectory)"
+
 update_all() {
     echo "🔄 Updating NCM System..."
-    
-    # Update main script first
     echo "📥 Downloading main script updates..."
     curl -s -o main.sh.tmp "${RAW_URL}/main.sh"
     
@@ -112,28 +149,6 @@ run_scripts() {
     fi
 }
 
-toggle_maintenance() {
-    mode="$1"
-    if [ "$mode" != "on" ] && [ "$mode" != "off" ]; then
-        echo "❌ Invalid maintenance mode!"
-        return 1
-    fi
-    
-    bash "$SCRIPTS_DIR/maintenance.sh" "$mode"
-}
-
-clear_nextcloud_logs() {
-    echo "🗑️  Lösche Nextcloud Logs..."
-    if [ -d "/var/www/nextcloud/data" ]; then
-        rm -f /var/www/nextcloud/data/nextcloud.log
-        echo "✅ Nextcloud Logs wurden gelöscht"
-    else
-        echo "❌ Nextcloud Verzeichnis nicht gefunden!"
-    fi
-    echo -e "\n${YELLOW}Drücke Enter um zum Hauptmenü zurückzukehren...${RESET}"
-    read
-}
-
 show_menu() {
     clear
     echo -e "${CYAN}  __ ${RESET}${WHITE}    _             _           _       "
@@ -148,36 +163,37 @@ show_menu() {
     echo -e "${CYAN}╭─────────────────────────────────${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}Hostname:${RESET} ${GREEN}$HOSTNAME${RESET}"
     echo -e "${CYAN}│${RESET} ${BOLD}Version:${RESET}  ${YELLOW}v$CURRENT_VERSION${RESET}"
+    if [ "$NEXTCLOUD_CONFIG_FOUND" -eq 1 ]; then
+        echo -e "${CYAN}│${RESET} ${BOLD}Nextcloud Config:${RESET} ${GREEN}Found${RESET}"
+        echo -e "${CYAN}│${RESET} ${BOLD}NC Version:${RESET} ${YELLOW}${NC_VERSION:-'-'}${RESET}"
+        echo -e "${CYAN}│${RESET} ${BOLD}NC URL:${RESET} ${BLUE}${NC_URL:-'-'}${RESET}"
+    else
+        echo -e "${CYAN}│${RESET} ${BOLD}Nextcloud Config:${RESET} ${RED}Not found${RESET}"
+    fi
     echo -e "${CYAN}╰─────────────────────────────────${RESET}"
     echo ""
-    echo -e "${BG_BLUE}${WHITE}${BOLD} MAIN MENU ${RESET}"
+    echo -e "${BG_BLUE}${WHITE}${BOLD} SCRIPTS MENU ${RESET}"
     echo -e "${CYAN}╭─────────────────────────────────${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}1)${RESET} ${WHITE}Check for Updates${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}2)${RESET} ${WHITE}Scripts Manager${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}3)${RESET} ${GREEN}Enable Maintenance Mode${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}4)${RESET} ${RED}Disable Maintenance Mode${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}5)${RESET} ${MAGENTA}Nextcloud Logs löschen${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}6)${RESET} ${YELLOW}Exit${RESET}"
+    scripts=( $(ls "$SCRIPTS_DIR"/*.sh 2>/dev/null) )
+    for i in "${!scripts[@]}"; do
+        echo -e "${CYAN}│${RESET} ${BOLD}$((i+1)))${RESET} ${WHITE}$(basename \"${scripts[$i]}\")${RESET}"
+    done
+    echo -e "${CYAN}│${RESET} ${BOLD}0)${RESET} ${YELLOW}Exit${RESET}"
     echo -e "${CYAN}╰─────────────────────────────────${RESET}"
-    
-    echo -e "\n${DIM}Enter your choice [1-6]:${RESET} "
+    echo -e "\n${DIM}Enter your choice [0-${#scripts[@]}]:${RESET} "
     read -p "" choice
-
-    case $choice in
-        1) check_update ;;
-        2) run_scripts ;;
-        3) toggle_maintenance "on" ;;
-        4) toggle_maintenance "off" ;;
-        5) clear_nextcloud_logs ;;
-        6) 
-           echo -e "\n${YELLOW}Goodbye!${RESET}"
-           exit 0 
-           ;;
-        *) 
-           echo -e "\n${RED}❌ Invalid input!${RESET}"
-           sleep 2
-           ;;
-    esac
+    if [ "$choice" -eq 0 ]; then
+        echo -e "\n${YELLOW}Goodbye!${RESET}"
+        exit 0
+    elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#scripts[@]} ]; then
+        echo "🔄 Starting $(basename \"${scripts[$((choice-1))]}\")..."
+        bash "${scripts[$((choice-1))]}"
+        echo -e "\n${YELLOW}Press Enter to return to main menu...${RESET}"
+        read
+    else
+        echo -e "\n${RED}❌ Invalid input!${RESET}"
+        sleep 2
+    fi
 }
 
 while true; do

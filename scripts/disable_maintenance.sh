@@ -1,12 +1,6 @@
 #!/bin/bash
 # Version: 0.1.5
 
-if [ "$EUID" -ne 0 ]; then 
-    echo "❌ This script must be run as root!"
-    exit 1
-fi
-
-# Nextcloud config detection (standardized)
 NCM_LOCAL_CONF="$(dirname "$0")/../ncm_local.conf"
 NEXTCLOUD_CONFIG=""
 NEXTCLOUD_CONFIG_FOUND=0
@@ -30,29 +24,4 @@ if [ "$NEXTCLOUD_CONFIG_FOUND" -eq 0 ]; then
     echo "❌ Nextcloud config.php not found! Please set the path in ncm_local.conf."
     exit 1
 fi
-
-run_occ() {
-    sudo -u www-data php "$NEXTCLOUD_PATH/occ" "$@"
-}
-
-mode="$1"
-
-case "$mode" in
-    "on")
-        echo "⚡ Enabling maintenance mode..."
-        run_occ maintenance:mode --on
-        echo "✅ Maintenance mode enabled"
-        ;;
-    "off")
-        echo "⚡ Disabling maintenance mode..."
-        run_occ maintenance:mode --off
-        echo "✅ Maintenance mode disabled"
-        ;;
-    *)
-        echo "❌ Invalid option! Usage: $0 [on|off]"
-        exit 1
-        ;;
-esac
-
-echo -e "\nPress Enter to return to main menu..."
-read
+sudo -u www-data php "$NEXTCLOUD_PATH/occ" maintenance:mode --off

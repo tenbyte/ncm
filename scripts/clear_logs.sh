@@ -1,12 +1,6 @@
 #!/bin/bash
 # Version: 0.1.5
 
-if [ "$EUID" -ne 0 ]; then 
-    echo "❌ This script must be run as root!"
-    exit 1
-fi
-
-# Nextcloud config detection (standardized)
 NCM_LOCAL_CONF="$(dirname "$0")/../ncm_local.conf"
 NEXTCLOUD_CONFIG=""
 NEXTCLOUD_CONFIG_FOUND=0
@@ -30,29 +24,17 @@ if [ "$NEXTCLOUD_CONFIG_FOUND" -eq 0 ]; then
     echo "❌ Nextcloud config.php not found! Please set the path in ncm_local.conf."
     exit 1
 fi
-
-run_occ() {
-    sudo -u www-data php "$NEXTCLOUD_PATH/occ" "$@"
+# Read datadirectory from config
+get_nc_config_value() {
+    local key="$1"
+    if [ -f "$NEXTCLOUD_CONFIG" ]; then
+        php -r "include '$NEXTCLOUD_CONFIG'; echo isset($CONFIG['$key']) ? $CONFIG['$key'] : '';" 2>/dev/null
+    fi
 }
-
-mode="$1"
-
-case "$mode" in
-    "on")
-        echo "⚡ Enabling maintenance mode..."
-        run_occ maintenance:mode --on
-        echo "✅ Maintenance mode enabled"
-        ;;
-    "off")
-        echo "⚡ Disabling maintenance mode..."
-        run_occ maintenance:mode --off
-        echo "✅ Maintenance mode disabled"
-        ;;
-    *)
-        echo "❌ Invalid option! Usage: $0 [on|off]"
-        exit 1
-        ;;
-esac
-
-echo -e "\nPress Enter to return to main menu..."
-read
+NC_DATADIR="$(get_nc_config_value datadirectory)"
+if [ -n "$NC_DATADIR" ] && [ -d "$NC_DATADIR" ]; then
+    rm -f "$NC_DATADIR/nextcloud.log"
+    echo "✅ Nextcloud logs deleted ($NC_DATADIR/nextcloud.log)"
+else
+    echo "❌ Nextcloud datadirectory not found!"
+fi
