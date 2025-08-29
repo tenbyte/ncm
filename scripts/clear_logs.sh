@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 0.1.5
+# Version: 0.1.5 - SECURITY FIXED
 
 NCM_LOCAL_CONF="$(dirname "$0")/../ncm_local.conf"
 NEXTCLOUD_CONFIG=""
@@ -69,26 +69,67 @@ get_nc_config_value() {
     fi
 }
 
-echo "🗑️ Nextcloud Log Cleaner"
-echo "========================"
+# SICHERHEITSFUNKTION: Prüfe ob Pfad sicher ist
+is_safe_log_path() {
+    local path="$1"
+    
+    # Prüfe ob es eine gültige Datei ist (nicht ein Verzeichnis)
+    if [ ! -f "$path" ]; then
+        return 1
+    fi
+    
+    # Prüfe ob der Dateiname "log" enthält oder typische Log-Endungen hat
+    local filename=$(basename "$path")
+    if [[ "$filename" == *"log"* ]] || [[ "$filename" == *.log ]] || [[ "$filename" == *.txt ]]; then
+        return 0
+    fi
+    
+    # Fallback: Prüfe ob es im bekannten Nextcloud-Struktur ist
+    if [[ "$path" == */nextcloud.log ]] || [[ "$path" == */owncloud.log ]]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+echo "🗑️ Nextcloud Log Cleaner (SECURE VERSION)"
+echo "========================================="
 
 NC_LOGFILE="$(get_nc_config_value logfile)"
 NC_DATADIR="$(get_nc_config_value datadirectory)"
 
-if [ -n "$NC_LOGFILE" ] && [ -f "$NC_LOGFILE" ]; then
-    rm -f "$NC_LOGFILE"
-    echo "✅ Nextcloud logs deleted (custom logfile: $NC_LOGFILE)"
-elif [ -n "$NC_DATADIR" ] && [ -d "$NC_DATADIR" ]; then
-    if [ -f "$NC_DATADIR/nextcloud.log" ]; then
-        rm -f "$NC_DATADIR/nextcloud.log"
-        echo "✅ Nextcloud logs deleted (standard location: $NC_DATADIR/nextcloud.log)"
+echo "🔍 Detected configuration:"
+echo "   Logfile setting: ${NC_LOGFILE:-'not set'}"
+echo "   Data directory: ${NC_DATADIR:-'not found'}"
+
+# Sicherheitsprüfungen
+LOGS_DELETED=0
+
+if [ -n "$NC_LOGFILE" ]; then
+    if is_safe_log_path "$NC_LOGFILE"; then
+        echo "🗑️ Removing custom logfile: $NC_LOGFILE"
+        rm -f "$NC_LOGFILE"
+        LOGS_DELETED=1
+        echo "✅ Custom logfile deleted: $NC_LOGFILE"
     else
-        echo "ℹ️ No log file found at standard location: $NC_DATADIR/nextcloud.log"
+        echo "⚠️ SECURITY: Skipping unsafe logfile path: $NC_LOGFILE"
+        echo "   (Does not appear to be a log file)"
     fi
-else
-    echo "❌ Could not determine Nextcloud log location!"
-    echo "   - No custom logfile defined in config"
-    echo "   - Datadirectory not found or not accessible"
+fi
+
+# Standard Nextcloud Log im Datenverzeichnis
+if [ -n "$NC_DATADIR" ] && [ -d "$NC_DATADIR" ]; then
+    STANDARD_LOG="$NC_DATADIR/nextcloud.log"
+    if [ -f "$STANDARD_LOG" ]; then
+        echo "🗑️ Removing standard logfile: $STANDARD_LOG"
+        rm -f "$STANDARD_LOG"
+        LOGS_DELETED=1
+        echo "✅ Standard logfile deleted: $STANDARD_LOG"
+    fi
+fi
+
+if [ $LOGS_DELETED -eq 0 ]; then
+    echo "ℹ️ No log files found to delete"
 fi
 
 echo ""
