@@ -101,6 +101,23 @@ echo "⚡ Enabling maintenance mode..."
 run_occ maintenance:mode --on
 
 echo "📂 Fixing file permissions..."
+if [ -z "$NEXTCLOUD_PATH" ]; then
+    echo "❌ SECURITY: NEXTCLOUD_PATH is empty! Aborting permission fix."
+    exit 1
+fi
+
+if [ ! -d "$NEXTCLOUD_PATH" ]; then
+    echo "❌ SECURITY: NEXTCLOUD_PATH does not exist: $NEXTCLOUD_PATH"
+    exit 1
+fi
+
+if [ ! -f "$NEXTCLOUD_PATH/config/config.php" ]; then
+    echo "❌ SECURITY: This does not appear to be a Nextcloud directory: $NEXTCLOUD_PATH"
+    echo "   (No config/config.php found)"
+    exit 1
+fi
+
+echo "🔒 Verified safe path: $NEXTCLOUD_PATH"
 chown -R www-data:www-data "$NEXTCLOUD_PATH"
 echo "✅ Permissions updated"
 
